@@ -1,0 +1,88 @@
+### Health Check
+GET http://localhost:5000
+
+### Register
+POST http://localhost:5000/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "test@gmail.com",
+  "username": "testuser",
+  "password": "password123"
+}
+
+### Login
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@gmail.com",
+  "password": "password123"
+}
+
+### Get Me (paste your token from login response below)
+GET http://localhost:5000/api/auth/me
+Authorization: Bearer paste_your_token_here
+
+
+
+### Create Room (paste your login token)
+POST http://localhost:5000/api/rooms/create
+Content-Type: application/json
+Authorization: Bearer paste_your_token_here
+
+{
+  "name": "My First Room",
+  "language": "javascript"
+}
+
+### Get My Rooms
+GET http://localhost:5000/api/rooms/my-rooms
+Authorization: Bearer paste_your_token_here
+
+### Join Room (paste a roomId from create response)
+POST http://localhost:5000/api/rooms/join/paste_room_id_here
+Authorization: Bearer paste_your_token_here
+
+### Get Single Room
+GET http://localhost:5000/api/rooms/paste_room_id_here
+Authorization: Bearer paste_your_token_here
+
+### Save Snapshot
+POST http://localhost:5000/api/rooms/paste_room_id_here/snapshot
+Content-Type: application/json
+Authorization: Bearer paste_your_token_here
+
+{
+  "code": "console.log('Hello CodeCollab!')"
+}
+
+### Run JavaScript Code
+POST http://localhost:5000/api/execute/run
+Content-Type: application/json
+Authorization: Bearer paste_your_token_here
+
+{
+  "code": "console.log('Hello from CodeCollab!')",
+  "language": "javascript"
+}
+
+### Run Python Code
+POST http://localhost:5000/api/execute/run
+Content-Type: application/json
+Authorization: Bearer paste_your_token_here
+
+{
+  "code": "print('Hello from Python!')",
+  "language": "python"
+}
+
+### Run Code with Error (to test stderr)
+POST http://localhost:5000/api/execute/run
+Content-Type: application/json
+Authorization: Bearer paste_your_token_here
+
+{
+  "code": "console.log(undefinedVariable)",
+  "language": "javascript"
+}

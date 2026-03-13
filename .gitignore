@@ -1,0 +1,12 @@
+# Root
+node_modules/
+
+# Backend
+server/node_modules/
+server/.env
+server/prisma/generated/
+
+# Frontend
+client/node_modules/
+client/dist/
+client/.env
