@@ -28,13 +28,13 @@ const getRandomColor = () => {
 };
 
 const initCollaboration = (server) => {
-  const io = new Server(server, {
-    cors: {
-      origin: "http://localhost:5173",
-      methods: ["GET", "POST"],
-      credentials: true,
-    },
-  });
+const io = new Server(server, {
+  cors: {
+    origin: ["http://localhost:5173", "https://codecollab-five.vercel.app/"],
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
 
   io.on("connection", (socket) => {
     console.log(`🔌 User connected: ${socket.id}`);

@@ -12,7 +12,10 @@ const server = http.createServer(app);
 // Middleware
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: [
+      "http://localhost:5173", // local dev
+      "https://codecollab-five.vercel.app/", // production
+    ],
     credentials: true,
   }),
 );
