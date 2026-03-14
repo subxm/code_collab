@@ -210,7 +210,12 @@ const AIPanel = ({
               placeholder="Message the room…"
               value={roomInput}
               onChange={(e) => setRoomInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleRoomSend()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleRoomSend();
+                }
+              }}
             />
             <button
               onClick={handleRoomSend}
@@ -287,9 +292,12 @@ const AIPanel = ({
               placeholder="Ask AI about your code…"
               value={aiInput}
               onChange={(e) => setAiInput(e.target.value)}
-              onKeyDown={(e) =>
-                e.key === "Enter" && !chatLoading && handleAiSend()
-              }
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleAiSend();
+                }
+              }}
             />
             <button
               onClick={handleAiSend}
