@@ -22,35 +22,45 @@ const useCollaboration = (roomId, username, editorRef) => {
     const ydoc = new Y.Doc();
     ydocRef.current = ydoc;
 
-    // Connect to socket
-    const socket = io(SOCKET_URL, { withCredentials: true });
+    // Connect to socket with explicit transport config
+    const socket = io(SOCKET_URL, {
+      withCredentials: true,
+      transports: ["websocket", "polling"], // try websocket first, fallback to polling
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
     socketRef.current = socket;
 
     socket.on("connect", () => {
       setIsConnected(true);
-      console.log("✅ Connected to collaboration server");
-
-      // Join the room
+      console.log("✅ Connected:", socket.id);
+      // Join room immediately on connect
       socket.emit("join-room", { roomId, username });
     });
 
     socket.on("disconnect", () => {
       setIsConnected(false);
-      console.log("❌ Disconnected from collaboration server");
+      console.log("❌ Disconnected");
     });
 
-    // ── Receive initial state from server ──────────────
+    socket.on("reconnect", () => {
+      setIsConnected(true);
+      // Rejoin room after reconnect
+      socket.emit("join-room", { roomId, username });
+    });
+
+    // Sync initial state
     socket.on("sync-state", (stateVector) => {
-      const update = new Uint8Array(stateVector);
-      Y.applyUpdate(ydoc, update);
+      Y.applyUpdate(ydoc, new Uint8Array(stateVector));
     });
 
-    // ── Receive code updates from other users ──────────
+    // Receive code updates
     socket.on("code-update", ({ update }) => {
       Y.applyUpdate(ydoc, new Uint8Array(update));
     });
 
-    // ── Listen for our own changes and send them ───────
+    // Send our changes
     ydoc.on("update", (update) => {
       socket.emit("code-update", {
         roomId,
@@ -58,39 +68,40 @@ const useCollaboration = (roomId, username, editorRef) => {
       });
     });
 
-    // ── Room users list ────────────────────────────────
+    // Users list — this is what populates the online counter
     socket.on("room-users", (roomUsers) => {
+      console.log("👥 Users update:", roomUsers);
       setUsers(roomUsers);
     });
 
-    // ── Language change ────────────────────────────────
+    // Language change
     socket.on("language-change", ({ language }) => {
       setLanguage(language);
     });
 
-    // ── Chat messages ──────────────────────────────────
+    // Chat messages
     socket.on("chat-message", (msg) => {
       setMessages((prev) => [...prev, msg]);
     });
 
-    // ── User left notification ─────────────────────────
+    // User left
     socket.on("user-left", ({ username }) => {
-      console.log(`👋 ${username} left the room`);
+      console.log(`👋 ${username} left`);
     });
 
     return () => {
-      // Cleanup on unmount
-      if (bindingRef.current) bindingRef.current.destroy();
+      if (bindingRef.current) {
+        bindingRef.current.destroy();
+        bindingRef.current = null;
+      }
       ydoc.destroy();
       socket.disconnect();
     };
   }, [roomId, username]);
 
-  // ── Bind Yjs to Monaco Editor ──────────────────────────
-  // This runs when the editor is ready
+  // Bind Yjs to Monaco editor
   const bindEditor = (editor) => {
     if (!ydocRef.current || !editor) return;
-
     const ytext = ydocRef.current.getText("code");
     const binding = new MonacoBinding(
       ytext,
@@ -100,13 +111,11 @@ const useCollaboration = (roomId, username, editorRef) => {
     bindingRef.current = binding;
   };
 
-  // ── Send chat message ──────────────────────────────────
   const sendMessage = (message) => {
     if (!socketRef.current) return;
     socketRef.current.emit("chat-message", { roomId, message, username });
   };
 
-  // ── Change language ────────────────────────────────────
   const changeLanguage = (newLanguage) => {
     if (!socketRef.current) return;
     socketRef.current.emit("language-change", {
