@@ -177,14 +177,12 @@ const EditorRoom = () => {
 
   return (
     <div style={styles.page}>
-
       {/* ── Toolbar ────────────────────────────────── */}
       <div style={styles.toolbar}>
-
         {/* Left */}
         <div style={styles.toolbarLeft}>
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate("/dashboard")}
             style={styles.iconBtn}
             title="Back to Dashboard"
           >
@@ -198,10 +196,15 @@ const EditorRoom = () => {
 
           {/* Connection status */}
           <span style={styles.connStatus}>
-            {isConnected
-              ? <><Wifi    size={11} color="var(--accent-green)" /> Live</>
-              : <><WifiOff size={11} color="#ff4d4d"             /> Offline</>
-            }
+            {isConnected ? (
+              <>
+                <Wifi size={11} color="var(--accent-green)" /> Live
+              </>
+            ) : (
+              <>
+                <WifiOff size={11} color="#ff4d4d" /> Offline
+              </>
+            )}
           </span>
         </div>
 
@@ -209,7 +212,7 @@ const EditorRoom = () => {
         <div style={styles.toolbarCenter}>
           <div style={styles.langDropWrap}>
             <button
-              onClick={() => setShowLangDrop(p => !p)}
+              onClick={() => setShowLangDrop((p) => !p)}
               style={styles.langDropBtn}
             >
               {language}
@@ -224,16 +227,20 @@ const EditorRoom = () => {
                   exit={{ opacity: 0, y: -8, scaleY: 0.9 }}
                   transition={{ duration: 0.15 }}
                 >
-                  {LANGUAGES.map(lang => (
+                  {LANGUAGES.map((lang) => (
                     <button
                       key={lang}
                       onClick={() => handleLanguageChange(lang)}
                       style={{
                         ...styles.langOption,
-                        color: lang === language
-                          ? 'var(--accent-cyan)' : 'var(--text-secondary)',
-                        background: lang === language
-                          ? 'rgba(0,212,255,0.08)' : 'transparent',
+                        color:
+                          lang === language
+                            ? "var(--accent-cyan)"
+                            : "var(--text-secondary)",
+                        background:
+                          lang === language
+                            ? "rgba(0,212,255,0.08)"
+                            : "transparent",
                       }}
                     >
                       {lang}
@@ -280,20 +287,28 @@ const EditorRoom = () => {
 
           {/* Panel toggles */}
           <button
-            onClick={() => setRightPanel(p => p === 'ai' ? 'hidden' : 'ai')}
+            onClick={() => setRightPanel((p) => (p === "ai" ? "hidden" : "ai"))}
             style={{
               ...styles.iconBtn,
-              color: rightPanel === 'ai' ? 'var(--accent-cyan)' : 'var(--text-muted)',
+              color:
+                rightPanel === "ai"
+                  ? "var(--accent-cyan)"
+                  : "var(--text-muted)",
             }}
             title="Toggle AI Panel"
           >
             <Brain size={16} />
           </button>
           <button
-            onClick={() => setBottomPanel(p => p === 'terminal' ? 'hidden' : 'terminal')}
+            onClick={() =>
+              setBottomPanel((p) => (p === "terminal" ? "hidden" : "terminal"))
+            }
             style={{
               ...styles.iconBtn,
-              color: bottomPanel === 'terminal' ? 'var(--accent-green)' : 'var(--text-muted)',
+              color:
+                bottomPanel === "terminal"
+                  ? "var(--accent-green)"
+                  : "var(--text-muted)",
             }}
             title="Toggle Terminal"
           >
@@ -309,12 +324,16 @@ const EditorRoom = () => {
             style={{ ...styles.iconBtn }}
             title="Save Snapshot"
           >
-            {saving
-              ? <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                  <Save size={15} color="var(--accent-cyan)" />
-                </motion.div>
-              : <Save size={15} color="var(--text-muted)" />
-            }
+            {saving ? (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              >
+                <Save size={15} color="var(--accent-cyan)" />
+              </motion.div>
+            ) : (
+              <Save size={15} color="var(--text-muted)" />
+            )}
           </button>
 
           {/* Run */}
@@ -322,14 +341,18 @@ const EditorRoom = () => {
             className="btn btn-primary"
             onClick={handleRun}
             disabled={isRunning}
-            style={{ padding: '6px 16px', fontSize: '13px', gap: 6 }}
+            style={{ padding: "6px 16px", fontSize: "13px", gap: 6 }}
           >
-            {isRunning
-              ? <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                  <Play size={13} />
-                </motion.div>
-              : <Play size={13} />
-            }
+            {isRunning ? (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              >
+                <Play size={13} />
+              </motion.div>
+            ) : (
+              <Play size={13} />
+            )}
             Run
           </button>
         </div>
@@ -337,15 +360,13 @@ const EditorRoom = () => {
 
       {/* ── Main layout ────────────────────────────── */}
       <div style={styles.layout}>
-
         {/* Editor + Terminal column */}
         <div style={styles.editorCol}>
-
           {/* Monaco Editor */}
           <div style={styles.editorWrap}>
             <Editor
               height="100%"
-              language={language === 'cpp' ? 'cpp' : language}
+              language={language === "cpp" ? "cpp" : language}
               theme="vs-dark"
               onMount={handleEditorMount}
               options={editorOptions}
@@ -354,7 +375,7 @@ const EditorRoom = () => {
 
           {/* Terminal panel */}
           <AnimatePresence>
-            {bottomPanel === 'terminal' && (
+            {bottomPanel === "terminal" && (
               <motion.div
                 style={styles.terminalWrap}
                 initial={{ height: 0, opacity: 0 }}
@@ -375,7 +396,7 @@ const EditorRoom = () => {
 
         {/* AI Panel */}
         <AnimatePresence>
-          {rightPanel === 'ai' && (
+          {rightPanel === "ai" && (
             <motion.div
               style={styles.aiPanelWrap}
               initial={{ width: 0, opacity: 0 }}
@@ -384,28 +405,22 @@ const EditorRoom = () => {
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             >
               <AIPanel
-                code={getCode()}
-                language={language}
+                currentUser={user?.username}
+                users={users}
+                messages={messages}
+                onSendRoomMessage={sendMessage}
                 chatHistory={ai.chatHistory}
                 chatLoading={ai.chatLoading}
                 onSendChat={ai.sendChat}
-                reviewLoading={ai.reviewLoading}
-                reviewIssues={ai.reviewIssues}
-                onReview={ai.reviewCode}
-                onClearReview={ai.clearReview}
-                fixLoading={ai.fixLoading}
-                fixResult={ai.fixResult}
-                onFix={ai.autoFix}
-                onApplyFix={handleApplyFix}
-                onClearFix={ai.clearFix}
-                lastError={lastError}
+                code={getCode()}
+                language={language}
               />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
     </div>
-  )
+  );
 }
 
 // ── Styles ───────────────────────────────────────────────

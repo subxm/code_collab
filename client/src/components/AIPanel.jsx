@@ -1,104 +1,120 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Brain,
-  MessageSquare,
-  Search,
-  Zap,
-  Send,
-  Loader2,
-  AlertTriangle,
-  CheckCircle,
-  Info,
-  ChevronDown,
-  X,
-} from "lucide-react";
+import { Brain, MessageSquare, Send, Loader2, Users, X } from "lucide-react";
 
 const TABS = [
   { id: "chat", label: "Chat", icon: MessageSquare },
-  { id: "review", label: "Review", icon: Search },
-  { id: "fix", label: "Fix", icon: Zap },
+  { id: "ai", label: "Ask AI", icon: Brain },
 ];
 
-// ── Severity icon ────────────────────────────────────────
-const SeverityIcon = ({ severity }) => {
-  if (severity === "error") return <AlertTriangle size={13} color="#ff4d4d" />;
-  if (severity === "warning")
-    return <AlertTriangle size={13} color="#ffa657" />;
-  return <Info size={13} color="var(--accent-cyan)" />;
+// ── Room Chat Message ────────────────────────────────────
+const RoomChatMessage = ({ msg, currentUser }) => {
+  const isMe = msg.username === currentUser;
+  return (
+    <motion.div
+      style={{
+        ...styles.msgWrap,
+        alignItems: isMe ? "flex-end" : "flex-start",
+      }}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      {!isMe && <span style={styles.msgUsername}>{msg.username}</span>}
+      <div
+        style={{
+          ...styles.bubble,
+          background: isMe ? "rgba(0,212,255,0.12)" : "var(--bg-elevated)",
+          border: `1px solid ${isMe ? "rgba(0,212,255,0.25)" : "var(--border)"}`,
+          borderRadius: isMe ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
+        }}
+      >
+        <p style={styles.msgText}>{msg.message}</p>
+      </div>
+      <span style={styles.msgTime}>
+        {new Date(msg.timestamp).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
+      </span>
+    </motion.div>
+  );
 };
 
-const SEVERITY_COLORS = {
-  error: "#ff4d4d",
-  warning: "#ffa657",
-  suggestion: "var(--accent-cyan)",
-};
-
-// ── Chat Message ─────────────────────────────────────────
-const ChatMessage = ({ msg }) => (
+// ── AI Chat Message ──────────────────────────────────────
+const AIChatMessage = ({ msg }) => (
   <motion.div
     style={{
-      ...styles.message,
-      alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
+      ...styles.msgWrap,
+      alignItems: msg.role === "user" ? "flex-end" : "flex-start",
     }}
-    initial={{ opacity: 0, y: 8 }}
+    initial={{ opacity: 0, y: 6 }}
     animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.25 }}
+    transition={{ duration: 0.2 }}
   >
     {msg.role === "assistant" && (
-      <div style={styles.aiLabel}>
-        <Brain size={11} color="var(--accent-cyan)" /> AI
-      </div>
+      <span style={styles.aiLabel}>
+        <Brain size={10} color="var(--accent-cyan)" /> AI
+      </span>
     )}
     <div
       style={{
         ...styles.bubble,
         background:
           msg.role === "user" ? "rgba(0,212,255,0.12)" : "var(--bg-elevated)",
-        border: `1px solid ${
-          msg.role === "user" ? "rgba(0,212,255,0.2)" : "var(--border)"
-        }`,
+        border: `1px solid ${msg.role === "user" ? "rgba(0,212,255,0.25)" : "var(--border)"}`,
+        borderRadius:
+          msg.role === "user" ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
       }}
     >
-      <p style={styles.messageText}>{msg.content}</p>
+      <p style={{ ...styles.msgText, whiteSpace: "pre-wrap" }}>{msg.content}</p>
     </div>
   </motion.div>
 );
 
+// ── Main Panel ───────────────────────────────────────────
 const AIPanel = ({
-  code,
-  language,
+  currentUser,
+  users,
+  messages,
+  onSendRoomMessage,
   chatHistory,
   chatLoading,
   onSendChat,
-  reviewLoading,
-  reviewIssues,
-  onReview,
-  onClearReview,
-  fixLoading,
-  fixResult,
-  onFix,
-  onApplyFix,
-  onClearFix,
-  lastError,
+  code,
+  language,
 }) => {
   const [activeTab, setActiveTab] = useState("chat");
-  const [chatInput, setChatInput] = useState("");
+  const [roomInput, setRoomInput] = useState("");
+  const [aiInput, setAiInput] = useState("");
+  const [showMembers, setShowMembers] = useState(false);
+
   const chatBottomRef = useRef(null);
+  const aiBottomRef = useRef(null);
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    aiBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory, chatLoading]);
 
-  const handleSend = () => {
-    if (!chatInput.trim()) return;
-    onSendChat(chatInput, code, language);
-    setChatInput("");
+  const handleRoomSend = () => {
+    if (!roomInput.trim()) return;
+    onSendRoomMessage(roomInput);
+    setRoomInput("");
+  };
+
+  const handleAiSend = () => {
+    if (!aiInput.trim()) return;
+    onSendChat(aiInput, code, language);
+    setAiInput("");
   };
 
   return (
     <div style={styles.panel}>
-      {/* ── Tabs ───────────────────────────────────── */}
+      {/* ── Tabs ─────────────────────────────────── */}
       <div style={styles.tabs}>
         {TABS.map((tab) => (
           <button
@@ -122,229 +138,181 @@ const AIPanel = ({
         ))}
       </div>
 
-      {/* ── Tab Content ───────────────────────────── */}
-      <div style={styles.content}>
-        {/* CHAT TAB */}
-        {activeTab === "chat" && (
-          <div style={styles.chatWrap}>
-            <div style={styles.messages}>
-              {chatHistory.length === 0 && (
-                <div style={styles.emptyChat}>
-                  <Brain size={28} color="var(--text-muted)" />
-                  <p style={styles.emptyChatText}>
-                    Ask me anything about your code
-                  </p>
-                </div>
-              )}
-              {chatHistory.map((msg, i) => (
-                <ChatMessage key={i} msg={msg} />
-              ))}
-              {chatLoading && (
-                <motion.div
-                  style={styles.aiTyping}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
-                  <Brain size={11} color="var(--accent-cyan)" />
-                  <motion.span
-                    animate={{ opacity: [1, 0.4, 1] }}
-                    transition={{ duration: 1, repeat: Infinity }}
-                    style={{ fontSize: "12px", color: "var(--text-muted)" }}
-                  >
-                    AI is thinking…
-                  </motion.span>
-                </motion.div>
-              )}
-              <div ref={chatBottomRef} />
-            </div>
-
-            {/* Chat input */}
-            <div style={styles.chatInput}>
-              <input
-                style={styles.chatField}
-                placeholder="Ask about your code…"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) =>
-                  e.key === "Enter" && !e.shiftKey && handleSend()
-                }
-              />
-              <button
-                onClick={handleSend}
-                disabled={chatLoading || !chatInput.trim()}
-                style={styles.sendBtn}
-              >
-                {chatLoading ? (
-                  <Loader2
-                    size={14}
-                    style={{ animation: "spin 0.7s linear infinite" }}
-                  />
-                ) : (
-                  <Send size={14} />
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* REVIEW TAB */}
-        {activeTab === "review" && (
-          <div style={styles.tabContent}>
+      {/* ── ROOM CHAT TAB ────────────────────────── */}
+      {activeTab === "chat" && (
+        <div style={styles.tabWrap}>
+          {/* Online members */}
+          <div style={styles.membersHeader}>
             <button
-              className="btn btn-ghost"
-              onClick={() => onReview(code, language)}
-              disabled={reviewLoading}
-              style={{
-                width: "100%",
-                justifyContent: "center",
-                marginBottom: 16,
-              }}
+              style={styles.membersToggle}
+              onClick={() => setShowMembers((p) => !p)}
             >
-              {reviewLoading ? (
-                <>
-                  <Loader2
-                    size={14}
-                    style={{ animation: "spin 0.7s linear infinite" }}
-                  />{" "}
-                  Reviewing…
-                </>
-              ) : (
-                <>
-                  <Search size={14} /> Review Code
-                </>
-              )}
+              <Users size={12} color="var(--accent-green)" />
+              <span style={styles.membersCount}>{users.length} online</span>
+              <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>
+                {showMembers ? "▲" : "▼"}
+              </span>
             </button>
-
-            {reviewIssues.length > 0 && (
-              <div style={styles.issuesList}>
-                <div style={styles.issuesHeader}>
-                  <span style={styles.issuesCount}>
-                    {reviewIssues.length} issue
-                    {reviewIssues.length !== 1 ? "s" : ""} found
-                  </span>
-                  <button onClick={onClearReview} style={styles.clearIssues}>
-                    <X size={12} /> Clear
-                  </button>
-                </div>
-                {reviewIssues.map((issue, i) => (
-                  <motion.div
-                    key={i}
-                    style={{
-                      ...styles.issue,
-                      borderLeft: `3px solid ${SEVERITY_COLORS[issue.severity] || "var(--border)"}`,
-                    }}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.06 }}
-                  >
-                    <div style={styles.issueTop}>
-                      <SeverityIcon severity={issue.severity} />
-                      <span
-                        style={{
-                          ...styles.issueSeverity,
-                          color: SEVERITY_COLORS[issue.severity],
-                        }}
-                      >
-                        {issue.severity}
-                      </span>
-                      <span style={styles.issueLine}>Line {issue.line}</span>
-                    </div>
-                    <p style={styles.issueMsg}>{issue.message}</p>
-                    <p style={styles.issueFix}>💡 {issue.fix}</p>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-
-            {!reviewLoading && reviewIssues.length === 0 && (
-              <div style={styles.noIssues}>
-                <CheckCircle size={24} color="var(--accent-green)" />
-                <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>
-                  Click Review to analyse your code
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* FIX TAB */}
-        {activeTab === "fix" && (
-          <div style={styles.tabContent}>
-            <button
-              className="btn btn-ghost"
-              onClick={() => onFix(code, lastError, language)}
-              disabled={fixLoading || !lastError}
-              style={{
-                width: "100%",
-                justifyContent: "center",
-                marginBottom: 8,
-              }}
-            >
-              {fixLoading ? (
-                <>
-                  <Loader2
-                    size={14}
-                    style={{ animation: "spin 0.7s linear infinite" }}
-                  />{" "}
-                  Fixing…
-                </>
-              ) : (
-                <>
-                  <Zap size={14} /> Auto-fix Last Error
-                </>
-              )}
-            </button>
-
-            {!lastError && (
-              <p style={styles.noError}>
-                Run your code first. If there's an error, AI will fix it here.
-              </p>
-            )}
-
-            {lastError && !fixResult && (
-              <div style={styles.errorPreview}>
-                <span style={styles.errorLabel}>Last error:</span>
-                <pre style={styles.errorPre}>{lastError}</pre>
-              </div>
-            )}
 
             <AnimatePresence>
-              {fixResult && (
+              {showMembers && (
                 <motion.div
-                  style={styles.fixResult}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
+                  style={styles.membersList}
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
                 >
-                  <div style={styles.fixHeader}>
-                    <CheckCircle size={14} color="var(--accent-green)" />
-                    <span style={styles.fixTitle}>Fix ready</span>
-                    <button onClick={onClearFix} style={styles.clearIssues}>
-                      <X size={12} />
-                    </button>
-                  </div>
-                  <p style={styles.fixExplanation}>{fixResult.explanation}</p>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => onApplyFix(fixResult.fixedCode)}
-                    style={{
-                      width: "100%",
-                      justifyContent: "center",
-                      marginTop: 12,
-                    }}
-                  >
-                    Apply Fix
-                  </button>
+                  {users.map((u, i) => (
+                    <div key={i} style={styles.memberItem}>
+                      <div
+                        style={{
+                          ...styles.memberAvatar,
+                          background: u.color || "var(--accent-cyan)",
+                        }}
+                      >
+                        {u.username?.[0]?.toUpperCase()}
+                      </div>
+                      <span style={styles.memberName}>
+                        {u.username}
+                        {u.username === currentUser && (
+                          <span style={styles.youBadge}> you</span>
+                        )}
+                      </span>
+                      <span style={styles.onlineDot} />
+                    </div>
+                  ))}
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
-        )}
-      </div>
+
+          {/* Messages */}
+          <div style={styles.messages}>
+            {messages.length === 0 && (
+              <div style={styles.emptyState}>
+                <MessageSquare size={24} color="var(--text-muted)" />
+                <p style={styles.emptyText}>
+                  No messages yet. Say hi to your team!
+                </p>
+              </div>
+            )}
+            {messages.map((msg, i) => (
+              <RoomChatMessage key={i} msg={msg} currentUser={currentUser} />
+            ))}
+            <div ref={chatBottomRef} />
+          </div>
+
+          {/* Input */}
+          <div style={styles.inputRow}>
+            <input
+              style={styles.inputField}
+              placeholder="Message the room…"
+              value={roomInput}
+              onChange={(e) => setRoomInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleRoomSend()}
+            />
+            <button
+              onClick={handleRoomSend}
+              disabled={!roomInput.trim()}
+              style={styles.sendBtn}
+            >
+              <Send size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── ASK AI TAB ───────────────────────────── */}
+      {activeTab === "ai" && (
+        <div style={styles.tabWrap}>
+          {/* Messages */}
+          <div style={styles.messages}>
+            {chatHistory.length === 0 && (
+              <div style={styles.emptyState}>
+                <Brain size={28} color="var(--text-muted)" />
+                <p style={styles.emptyText}>
+                  Ask me anything about your code. I can see what's in the
+                  editor!
+                </p>
+                {/* Suggestion chips */}
+                <div style={styles.chips}>
+                  {[
+                    "Explain this code",
+                    "How can I improve this?",
+                    "Find bugs",
+                    "Add comments",
+                  ].map((chip) => (
+                    <button
+                      key={chip}
+                      style={styles.chip}
+                      onClick={() => {
+                        onSendChat(chip, code, language);
+                      }}
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {chatHistory.map((msg, i) => (
+              <AIChatMessage key={i} msg={msg} />
+            ))}
+
+            {chatLoading && (
+              <motion.div
+                style={styles.aiTyping}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                <Brain size={11} color="var(--accent-cyan)" />
+                <motion.span
+                  style={{ fontSize: "12px", color: "var(--text-muted)" }}
+                  animate={{ opacity: [1, 0.4, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  AI is thinking…
+                </motion.span>
+              </motion.div>
+            )}
+            <div ref={aiBottomRef} />
+          </div>
+
+          {/* Input */}
+          <div style={styles.inputRow}>
+            <input
+              style={styles.inputField}
+              placeholder="Ask AI about your code…"
+              value={aiInput}
+              onChange={(e) => setAiInput(e.target.value)}
+              onKeyDown={(e) =>
+                e.key === "Enter" && !chatLoading && handleAiSend()
+              }
+            />
+            <button
+              onClick={handleAiSend}
+              disabled={chatLoading || !aiInput.trim()}
+              style={styles.sendBtn}
+            >
+              {chatLoading ? (
+                <Loader2
+                  size={14}
+                  style={{ animation: "spin 0.7s linear infinite" }}
+                />
+              ) : (
+                <Send size={14} />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
+// ── Styles ───────────────────────────────────────────────
 const styles = {
   panel: {
     height: "100%",
@@ -352,15 +320,17 @@ const styles = {
     flexDirection: "column",
     background: "var(--bg-secondary)",
     borderLeft: "1px solid var(--border)",
+    overflow: "hidden",
   },
   tabs: {
     display: "flex",
+    flexShrink: 0,
     borderBottom: "1px solid var(--border)",
     background: "var(--bg-card)",
   },
   tab: {
     flex: 1,
-    padding: "10px 4px",
+    padding: "11px 4px",
     background: "none",
     border: "none",
     cursor: "pointer",
@@ -370,35 +340,136 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: 5,
+    gap: 6,
     transition: "color 0.15s",
   },
-  content: {
-    flex: 1,
-    overflow: "hidden",
+  tabWrap: {
     display: "flex",
     flexDirection: "column",
+    height: "100%",
+    overflow: "hidden",
   },
 
-  chatWrap: { display: "flex", flexDirection: "column", height: "100%" },
+  membersHeader: { flexShrink: 0, borderBottom: "1px solid var(--border)" },
+  membersToggle: {
+    width: "100%",
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    padding: "8px 12px",
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+  },
+  membersCount: {
+    fontSize: "12px",
+    color: "var(--accent-green)",
+    fontFamily: "var(--font-mono)",
+    flex: 1,
+    textAlign: "left",
+  },
+  membersList: {
+    overflow: "hidden",
+    background: "var(--bg-card)",
+    borderTop: "1px solid var(--border)",
+  },
+  memberItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "6px 12px",
+  },
+  memberAvatar: {
+    width: 22,
+    height: 22,
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "10px",
+    fontWeight: 700,
+    color: "#fff",
+    flexShrink: 0,
+  },
+  memberName: { fontSize: "12px", color: "var(--text-secondary)", flex: 1 },
+  youBadge: {
+    fontSize: "10px",
+    color: "var(--accent-cyan)",
+    fontFamily: "var(--font-mono)",
+  },
+  onlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: "50%",
+    background: "var(--accent-green)",
+    flexShrink: 0,
+  },
+
   messages: {
     flex: 1,
     overflow: "auto",
     padding: "12px",
     display: "flex",
     flexDirection: "column",
-    gap: 10,
+    gap: 8,
   },
-  emptyChat: {
+  emptyState: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    gap: 8,
-    padding: "32px 16px",
+    gap: 10,
+    padding: "32px 12px",
     textAlign: "center",
-    color: "var(--text-muted)",
   },
-  emptyChatText: { fontSize: "13px", color: "var(--text-muted)" },
+  emptyText: {
+    fontSize: "12px",
+    color: "var(--text-muted)",
+    lineHeight: 1.6,
+    maxWidth: 200,
+  },
+
+  chips: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 6,
+    justifyContent: "center",
+    marginTop: 4,
+  },
+  chip: {
+    padding: "5px 10px",
+    borderRadius: 100,
+    background: "var(--bg-elevated)",
+    border: "1px solid var(--border)",
+    fontSize: "11px",
+    color: "var(--text-secondary)",
+    cursor: "pointer",
+    fontFamily: "var(--font-body)",
+    transition: "border-color 0.15s, color 0.15s",
+  },
+
+  msgWrap: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 3,
+    maxWidth: "90%",
+  },
+  msgUsername: {
+    fontSize: "10px",
+    color: "var(--accent-cyan)",
+    fontFamily: "var(--font-mono)",
+    paddingLeft: 4,
+  },
+  bubble: { padding: "7px 10px" },
+  msgText: {
+    fontSize: "13px",
+    lineHeight: 1.55,
+    color: "var(--text-primary)",
+  },
+  msgTime: {
+    fontSize: "10px",
+    color: "var(--text-muted)",
+    paddingLeft: 4,
+  },
   aiLabel: {
     display: "flex",
     alignItems: "center",
@@ -406,17 +477,9 @@ const styles = {
     fontSize: "10px",
     fontWeight: 700,
     color: "var(--accent-cyan)",
-    marginBottom: 4,
     fontFamily: "var(--font-mono)",
     textTransform: "uppercase",
-  },
-  message: { display: "flex", flexDirection: "column", maxWidth: "88%" },
-  bubble: { borderRadius: 10, padding: "8px 12px" },
-  messageText: {
-    fontSize: "13px",
-    lineHeight: 1.65,
-    color: "var(--text-primary)",
-    whiteSpace: "pre-wrap",
+    paddingLeft: 4,
   },
   aiTyping: {
     display: "flex",
@@ -424,27 +487,29 @@ const styles = {
     gap: 6,
     padding: "4px 0",
   },
-  chatInput: {
+
+  inputRow: {
     display: "flex",
     gap: 8,
     padding: "10px 12px",
     borderTop: "1px solid var(--border)",
     background: "var(--bg-card)",
+    flexShrink: 0,
   },
-  chatField: {
+  inputField: {
     flex: 1,
     background: "var(--bg-elevated)",
     border: "1px solid var(--border)",
     borderRadius: 8,
-    padding: "8px 12px",
+    padding: "7px 10px",
     color: "var(--text-primary)",
     fontSize: "13px",
     fontFamily: "var(--font-body)",
     outline: "none",
   },
   sendBtn: {
-    width: 34,
-    height: 34,
+    width: 32,
+    height: 32,
     borderRadius: 8,
     background: "var(--accent-cyan)",
     border: "none",
@@ -454,125 +519,6 @@ const styles = {
     justifyContent: "center",
     color: "var(--bg-primary)",
     flexShrink: 0,
-    transition: "opacity 0.15s",
-  },
-
-  tabContent: { padding: "14px", overflow: "auto", flex: 1 },
-  issuesList: { display: "flex", flexDirection: "column", gap: 10 },
-  issuesHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  issuesCount: {
-    fontSize: "12px",
-    color: "var(--text-muted)",
-    fontFamily: "var(--font-mono)",
-  },
-  clearIssues: {
-    display: "flex",
-    alignItems: "center",
-    gap: 4,
-    background: "none",
-    border: "none",
-    cursor: "pointer",
-    fontSize: "11px",
-    color: "var(--text-muted)",
-  },
-  issue: {
-    background: "var(--bg-card)",
-    borderRadius: 8,
-    padding: "10px 12px",
-    border: "1px solid var(--border)",
-  },
-  issueTop: {
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: 6,
-  },
-  issueSeverity: {
-    fontSize: "11px",
-    fontWeight: 700,
-    fontFamily: "var(--font-mono)",
-    textTransform: "uppercase",
-  },
-  issueLine: {
-    fontSize: "11px",
-    color: "var(--text-muted)",
-    fontFamily: "var(--font-mono)",
-    marginLeft: "auto",
-  },
-  issueMsg: {
-    fontSize: "13px",
-    color: "var(--text-primary)",
-    marginBottom: 6,
-    lineHeight: 1.5,
-  },
-  issueFix: {
-    fontSize: "12px",
-    color: "var(--text-secondary)",
-    lineHeight: 1.5,
-  },
-  noIssues: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 10,
-    padding: "32px 0",
-    color: "var(--text-muted)",
-  },
-
-  noError: {
-    fontSize: "13px",
-    color: "var(--text-muted)",
-    textAlign: "center",
-    padding: "16px 0",
-    lineHeight: 1.6,
-  },
-  errorPreview: {
-    background: "var(--bg-card)",
-    border: "1px solid rgba(255,77,77,0.2)",
-    borderRadius: 8,
-    padding: "10px 12px",
-    marginBottom: 8,
-  },
-  errorLabel: {
-    fontSize: "11px",
-    color: "#ff4d4d",
-    fontFamily: "var(--font-mono)",
-  },
-  errorPre: {
-    fontSize: "12px",
-    color: "#ff6b6b",
-    whiteSpace: "pre-wrap",
-    wordBreak: "break-word",
-    marginTop: 6,
-    fontFamily: "var(--font-mono)",
-  },
-  fixResult: {
-    background: "var(--bg-card)",
-    border: "1px solid rgba(0,255,157,0.2)",
-    borderRadius: 8,
-    padding: "12px",
-  },
-  fixHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 8,
-  },
-  fixTitle: {
-    fontSize: "13px",
-    fontWeight: 600,
-    color: "var(--accent-green)",
-    flex: 1,
-  },
-  fixExplanation: {
-    fontSize: "13px",
-    color: "var(--text-secondary)",
-    lineHeight: 1.6,
   },
 };
 
