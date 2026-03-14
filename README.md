@@ -68,7 +68,7 @@ Write, run, and discuss code together — powered by AI.
 | Service | Purpose | Cost |
 |---|---|---|
 | [Groq](https://console.groq.com) | LLaMA 3 inference (AI assistant) | Free tier |
-| [Judge0 CE](https://ce.judge0.com) | Code execution engine | Free, no key required |
+| [Judge0 CE](https://ce.judge0.com) | Judge0 (RapidAPI) | rapidapi.com | Free tier |
 
 ---
 
@@ -389,7 +389,7 @@ npm run build
 
 ## 🛣 Roadmap
 
-- [ ] Yjs CRDT integration for true conflict-free collaborative editing
+- [x] Yjs CRDT integration for true conflict-free collaborative editing
 - [ ] Session recording and playback
 - [ ] GitHub integration — push final code directly to a repo
 - [ ] Code annotation — pin comments to specific lines
