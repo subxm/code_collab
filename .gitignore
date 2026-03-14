@@ -5,6 +5,7 @@ node_modules/
 server/node_modules/
 server/.env
 server/prisma/generated/
+server/test.http
 
 # Frontend
 client/node_modules/

@@ -10,16 +10,23 @@ const app = express();
 const server = http.createServer(app);
 
 // Middleware
+// Middleware
 app.use(
   cors({
     origin: [
-      "http://localhost:5173", // local dev
-      "https://codecollab-five.vercel.app/", // production
+      "http://localhost:5173",
+      "https://codecollab-five.vercel.app",
     ],
     credentials: true,
-  }),
-);
-app.use(express.json());
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+)
+
+// Handle preflight requests ← this is important!
+app.options('*', cors())
+
+app.use(express.json())
 
 // Routes
 const authRoutes = require("./routes/authRoutes");
