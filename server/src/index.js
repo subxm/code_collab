@@ -24,9 +24,9 @@ app.use(
 )
 
 // Handle preflight requests ← this is important!
-app.options('*', cors())
-
-app.use(express.json())
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions)); // ← regex instead of '*'
+app.use(express.json());
 
 // Routes
 const authRoutes = require("./routes/authRoutes");
