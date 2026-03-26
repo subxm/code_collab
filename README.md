@@ -14,7 +14,7 @@ Write, run, and discuss code together — powered by AI.
 
 [![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
-[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://mysql.com)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://neon.tech)
 [![Prisma](https://img.shields.io/badge/Prisma-5-2D3748?style=flat-square&logo=prisma&logoColor=white)](https://prisma.io)
 [![Socket.io](https://img.shields.io/badge/Socket.io-4-010101?style=flat-square&logo=socket.io&logoColor=white)](https://socket.io)
 [![License](https://img.shields.io/badge/License-MIT-6366f1?style=flat-square)](LICENSE)
@@ -58,7 +58,7 @@ Write, run, and discuss code together — powered by AI.
 | Node.js + Express | REST API server |
 | Socket.io | WebSocket server for real-time sync |
 | Prisma ORM v5 | Type-safe database access |
-| MySQL 8 | Primary database |
+| PostgreSQL (Neon) | Primary database |
 | JSON Web Tokens | Stateless authentication |
 | bcryptjs | Password hashing |
 | Groq SDK | AI streaming completions |
@@ -69,6 +69,7 @@ Write, run, and discuss code together — powered by AI.
 |---|---|---|
 | [Groq](https://console.groq.com) | LLaMA 3 inference (AI assistant) | Free tier |
 | [Judge0 CE](https://ce.judge0.com) | Judge0 (RapidAPI) | rapidapi.com | Free tier |
+| [Neon](https://neon.tech) | Serverless PostgreSQL database | Free forever |
 
 ---
 
@@ -79,9 +80,9 @@ Write, run, and discuss code together — powered by AI.
 Make sure you have the following installed:
 
 - **Node.js** v18 or higher
-- **MySQL** 8.0 or higher
 - **Git**
 - A free **Groq API key** from [console.groq.com](https://console.groq.com)
+- A free **Neon** database from [neon.tech](https://neon.tech)
 
 ### 1. Clone the Repository
 
@@ -92,12 +93,7 @@ cd codecollab
 
 ### 2. Set Up the Database
 
-Open MySQL and create the database:
-
-```sql
-CREATE DATABASE codecollab;
-EXIT;
-```
+Create a free PostgreSQL database on [neon.tech](https://neon.tech), then copy the **Prisma connection string** from the Neon dashboard.
 
 ### 3. Configure the Backend
 
@@ -115,19 +111,17 @@ cp .env.example .env
 Edit `server/.env` with your values:
 
 ```env
-DATABASE_URL="mysql://root:yourpassword@localhost:3306/codecollab"
+DATABASE_URL="postgresql://user:password@host/neondb?sslmode=require"
 JWT_SECRET=your_jwt_secret_here
-REFRESH_SECRET=your_refresh_secret_here
 GROQ_API_KEY=your_groq_api_key_here
-CLIENT_URL=http://localhost:5173
-PORT=4000
+JUDGE0_API_KEY=your_judge0_api_key_here
+PORT=5000
 ```
 
-Run database migrations:
+Push the schema to your database:
 
 ```bash
-npx prisma migrate dev --name init
-npx prisma generate
+npx prisma db push
 ```
 
 ### 4. Configure the Frontend
@@ -340,12 +334,11 @@ User ─────────┬──── RoomMember ────── Ro
 
 | Variable | Required | Description |
 |---|---|---|
-| `DATABASE_URL` | ✅ | MySQL connection string |
-| `JWT_SECRET` | ✅ | Secret for signing access tokens (15min expiry) |
-| `REFRESH_SECRET` | ✅ | Secret for signing refresh tokens (7d expiry) |
+| `DATABASE_URL` | ✅ | PostgreSQL connection string (from [neon.tech](https://neon.tech)) |
+| `JWT_SECRET` | ✅ | Secret for signing JWT tokens |
 | `GROQ_API_KEY` | ✅ | From [console.groq.com](https://console.groq.com) |
-| `CLIENT_URL` | ✅ | Frontend origin for CORS (e.g. `http://localhost:5173`) |
-| `PORT` | ❌ | Server port (default: `4000`) |
+| `JUDGE0_API_KEY` | ✅ | From [rapidapi.com](https://rapidapi.com/judge0-official/api/judge0-ce) |
+| `PORT` | ❌ | Server port (default: `5000`) |
 
 ### `client/.env`
 
@@ -363,8 +356,8 @@ User ─────────┬──── RoomMember ────── Ro
 | Layer | Service | Free Tier |
 |---|---|---|
 | Frontend | [Vercel](https://vercel.com) | ✅ |
-| Backend | [Railway](https://railway.app) | ✅ |
-| Database | [Railway MySQL](https://railway.app) | ✅ |
+| Backend | [Render](https://render.com) | ✅ |
+| Database | [Neon](https://neon.tech) PostgreSQL | ✅ Forever |
 
 ### Deploy Frontend to Vercel
 
@@ -372,18 +365,20 @@ User ─────────┬──── RoomMember ────── Ro
 cd client
 npm run build
 # Push to GitHub and connect repo to Vercel
-# Set VITE_API_URL and VITE_SOCKET_URL in Vercel environment settings
+# Set VITE_API_URL in Vercel environment settings to your Render URL
 ```
 
-### Deploy Backend to Railway
+### Deploy Backend to Render
 
 ```bash
 # Push server/ to GitHub
-# Connect to Railway, set all environment variables
-# Railway auto-detects Node.js and runs npm start
+# Connect to Render, set Root Directory to 'server'
+# Build Command: npm install && npx prisma generate
+# Start Command: node src/index.js
+# Add all environment variables in Render dashboard
 ```
 
-> **Note:** Update `CLIENT_URL` in your server env to your Vercel domain, and update `VITE_API_URL` / `VITE_SOCKET_URL` in your client env to your Railway domain.
+> **Note:** Update `VITE_API_URL` in your Vercel environment settings to your Render backend URL.
 
 ---
 
