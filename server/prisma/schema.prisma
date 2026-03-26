@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -20,7 +20,7 @@ model Room {
   id        String   @id @default(cuid())
   name      String
   language  String   @default("javascript")
-  code      String   @db.LongText
+  code      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   ownerId   Int
@@ -41,7 +41,7 @@ model RoomMember {
 model Snapshot {
   id      Int      @id @default(autoincrement())
   roomId  String
-  code    String   @db.LongText
+  code    String
   savedAt DateTime @default(now())
   room    Room     @relation(fields: [roomId], references: [id])
 }

@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: codecollab-backend
+    runtime: node
+    buildCommand: npm install && npx prisma generate
+    startCommand: node src/index.js
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: JUDGE0_API_KEY
+        sync: false
