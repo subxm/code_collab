@@ -49,7 +49,6 @@ Write, run, and discuss code together — powered by AI.
 | React 18 + Vite | UI framework and build tool |
 | Monaco Editor | VS Code-grade code editor |
 | Socket.io Client | Real-time bidirectional communication |
-| Zustand | Lightweight global state management |
 | React Router v6 | Client-side routing |
 | Framer Motion | Animation library |
 | Axios | HTTP client with interceptors |
