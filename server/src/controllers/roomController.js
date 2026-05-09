@@ -15,7 +15,6 @@ const createRoom = async (req, res) => {
       data: {
         name,
         language: language || "javascript",
-        code: "// Start coding here...",
         ownerId: userId,
         members: {
           create: {
@@ -23,11 +22,20 @@ const createRoom = async (req, res) => {
             role: "owner",
           },
         },
+        files: {
+          create: {
+            name: "main.js",
+            language: language || "javascript",
+            content: "// Start coding here...",
+            order: 0,
+          },
+        },
       },
       include: {
         members: {
           include: { user: { select: { id: true, username: true } } },
         },
+        files: true,
       },
     });
 
@@ -93,6 +101,9 @@ const getRoom = async (req, res) => {
       include: {
         members: {
           include: { user: { select: { id: true, username: true } } },
+        },
+        files: {
+          orderBy: { order: "asc" },
         },
         snapshots: {
           orderBy: { savedAt: "desc" },

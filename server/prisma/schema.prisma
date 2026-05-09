@@ -8,24 +8,38 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  username  String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  rooms     RoomMember[]
+  id               Int        @id @default(autoincrement())
+  email            String     @unique
+  username         String     @unique
+  password         String
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  createdAt        DateTime   @default(now())
+  rooms            RoomMember[]
 }
 
 model Room {
   id        String   @id @default(cuid())
   name      String
   language  String   @default("javascript")
-  code      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   ownerId   Int
   members   RoomMember[]
+  files     File[]
   snapshots Snapshot[]
+}
+
+model File {
+  id        String   @id @default(cuid())
+  name      String
+  language  String   @default("javascript")
+  content   String   @default("")
+  order     Int      @default(0)
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model RoomMember {

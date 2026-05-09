@@ -129,6 +129,17 @@ const LoginPage = () => {
             </div>
           </div>
 
+          {/* Forgot Password */}
+          <div style={styles.forgotWrap}>
+            <button
+              type="button"
+              onClick={() => navigate("/forgot-password")}
+              style={styles.forgotBtn}
+            >
+              Forgot password?
+            </button>
+          </div>
+
           {/* Submit */}
           <motion.button
             className="btn btn-primary"
@@ -256,6 +267,21 @@ const styles = {
     padding: 0,
     display: "flex",
     alignItems: "center",
+  },
+  forgotWrap: {
+    display: "flex",
+    justifyContent: "flex-end",
+    marginTop: -4,
+    marginBottom: 8,
+  },
+  forgotBtn: {
+    background: "transparent",
+    border: "none",
+    fontSize: "13px",
+    color: "var(--text-muted)",
+    cursor: "pointer",
+    padding: 0,
+    transition: "color 0.2s",
   },
   submitBtn: {
     width: "100%",

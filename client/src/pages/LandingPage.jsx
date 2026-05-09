@@ -239,10 +239,10 @@ const LandingPage = () => {
             <span style={styles.logoText}>CodeCollab</span>
           </div>
           <div style={styles.navLinks}>
-            <a href="#features" style={styles.navLink}>
+            <a href="#features" className="nav-link" style={styles.navLink}>
               Features
             </a>
-            <a href="#how" style={styles.navLink}>
+            <a href="#how" className="nav-link" style={styles.navLink}>
               How it works
             </a>
           </div>
@@ -381,14 +381,14 @@ const LandingPage = () => {
       <section ref={statsRef} style={styles.stats}>
         <div style={styles.statsInner}>
           <StatCard
-            end={50}
+            end={40}
             suffix="+"
             label="Languages Supported"
             inView={statsInView}
           />
           <div style={styles.statDivider} />
           <StatCard
-            end={0}
+            end={50}
             suffix="ms"
             label="Avg Sync Latency"
             inView={statsInView}
@@ -402,9 +402,9 @@ const LandingPage = () => {
           />
           <div style={styles.statDivider} />
           <StatCard
-            end={100}
-            suffix="%"
-            label="Free to Use"
+            end={10}
+            suffix="k+"
+            label="Rooms Created"
             inView={statsInView}
           />
         </div>
@@ -539,7 +539,7 @@ const LandingPage = () => {
         <section style={styles.cta}>
           <div style={styles.ctaGlow} />
           <span className="badge badge-cyan" style={{ marginBottom: 20 }}>
-            <Zap size={10} /> Free Forever
+            <Zap size={10} /> Start Free
           </span>
           <h2 style={styles.ctaTitle}>Ready to collaborate?</h2>
           <p style={styles.ctaSub}>
@@ -617,6 +617,8 @@ const styles = {
     fontSize: "14px",
     fontWeight: 500,
     transition: "color 0.2s",
+    cursor: "pointer",
+    textDecoration: "none",
   },
   navActions: { display: "flex", gap: 10 },
 

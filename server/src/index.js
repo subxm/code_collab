@@ -13,7 +13,7 @@ const server = http.createServer(app);
 // ── CORS ──────────────────────────────────────────────────
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://codecollab-five.vercel.app"],
+    origin: ["http://localhost:5173", "http://localhost:5174", "https://codecollab-five.vercel.app"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -27,9 +27,11 @@ const authRoutes = require("./routes/authRoutes");
 const roomRoutes = require("./routes/roomRoutes");
 const executeRoutes = require("./routes/executeRoutes");
 const aiRoutes = require("./routes/aiRoutes");
+const fileRoutes = require("./routes/fileRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/rooms", roomRoutes);
+app.use("/api/files", fileRoutes);
 app.use("/api/execute", executeRoutes);
 app.use("/api/ai", aiRoutes);
 

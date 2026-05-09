@@ -98,7 +98,11 @@ pre,
 a {
   color: var(--accent-cyan);
   text-decoration: none;
-  transition: opacity 0.2s ease;
+}
+
+/* Nav link hover state */
+.nav-link:hover {
+  color: var(--accent-cyan) !important;
 }
 
 a:hover {

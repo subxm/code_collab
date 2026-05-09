@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const prisma = require("../prismaClient");
 
 // ─── Register ───────────────────────────────────────────
@@ -107,4 +108,82 @@ const getMe = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getMe };
+// ─── Forgot Password ────────────────────────────────────
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    // Always return success to prevent email enumeration
+    if (user) {
+      const resetToken = crypto.randomBytes(32).toString("hex");
+      const resetExpiry = new Date(Date.now() + 3600000); // 1 hour
+
+      await prisma.user.update({
+        where: { email },
+        data: {
+          resetToken,
+          resetTokenExpiry: resetExpiry,
+        },
+      });
+
+      // In production, send this token via email
+      // For MVP, return the token directly (would be removed in production)
+      console.log(`Password reset token for ${email}: ${resetToken}`);
+    }
+
+    res.status(200).json({
+      message: "If an account exists, a reset link has been sent",
+    });
+  } catch (error) {
+    console.error("ForgotPassword error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// ─── Reset Password ──────────────────────────────────────
+const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: "Token and new password are required" });
+    }
+
+    const user = await prisma.user.findFirst({
+      where: {
+        resetToken: token,
+        resetTokenExpiry: {
+          gt: new Date(),
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired reset token" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
+    });
+
+    res.status(200).json({ message: "Password reset successful" });
+  } catch (error) {
+    console.error("ResetPassword error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+module.exports = { register, login, getMe, forgotPassword, resetPassword };

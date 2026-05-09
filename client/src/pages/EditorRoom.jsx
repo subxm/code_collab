@@ -8,6 +8,7 @@ import useExecution from '../hooks/useExecution'
 import useAI from '../hooks/useAI'
 import TerminalPanel from '../components/TerminalPanel'
 import AIPanel from '../components/AIPanel'
+import FileTree from '../components/FileTree'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import {
@@ -46,13 +47,14 @@ const EditorRoom = () => {
   const editorRef         = useRef(null)
 
   const [room,         setRoom]         = useState(null)
+  const [files,        setFiles]        = useState([])
+  const [activeFile,   setActiveFile]   = useState(null)
   const [language,     setLanguage]     = useState('javascript')
   const [showLangDrop, setShowLangDrop] = useState(false)
-  const [bottomPanel,  setBottomPanel]  = useState('terminal') // 'terminal' | 'hidden'
-  const [rightPanel,   setRightPanel]   = useState('ai')       // 'ai' | 'hidden'
+  const [bottomPanel,  setBottomPanel]  = useState('terminal')
+  const [rightPanel,   setRightPanel]   = useState('ai')
   const [lastError,    setLastError]    = useState(null)
   const [saving,       setSaving]       = useState(false)
-
   // ── Hooks ──────────────────────────────────────────────
   const {
     users, messages, isConnected,
@@ -74,7 +76,19 @@ const EditorRoom = () => {
           headers: { Authorization: `Bearer ${token}` }
         })
         setRoom(res.data.room)
-        setLanguage(res.data.room.language || 'javascript')
+        let roomFiles = res.data.room.files || []
+        // If no files (old room), create a default one
+        if (roomFiles.length === 0) {
+          const newFile = await axios.post(
+            `${API_URL}/api/files/${roomId}`,
+            { name: 'main.js', language: res.data.room.language || 'javascript' },
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
+          roomFiles = [newFile.data.file]
+        }
+        setFiles(roomFiles)
+        setActiveFile(roomFiles[0])
+        setLanguage(roomFiles[0].language || 'javascript')
       } catch {
         toast.error('Room not found or access denied')
         navigate('/dashboard')
@@ -94,6 +108,80 @@ const EditorRoom = () => {
   const handleEditorMount = (editor) => {
     editorRef.current = editor
     bindEditor(editor)
+    // Set initial content from active file
+    if (activeFile?.content) {
+      editor.setValue(activeFile.content)
+    }
+  }
+
+  // ── Sync editor when active file changes ─────────────
+  useEffect(() => {
+    if (editorRef.current && activeFile) {
+      const currentContent = editorRef.current.getValue()
+      if (currentContent !== activeFile.content) {
+        editorRef.current.setValue(activeFile.content || '')
+      }
+      setLanguage(activeFile.language || 'javascript')
+    }
+  }, [activeFile?.id])
+
+  // ── File operations ───────────────────────────────────
+  const handleSelectFile = (file) => {
+    // Save current file content before switching
+    if (editorRef.current && activeFile) {
+      const currentContent = editorRef.current.getValue()
+      saveFileContent(activeFile.id, currentContent)
+    }
+    setActiveFile(file)
+  }
+
+  const saveFileContent = async (fileId, content) => {
+    try {
+      await axios.put(
+        `${API_URL}/api/files/${fileId}`,
+        { content },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+    } catch (err) {
+      console.error('Failed to save file:', err)
+    }
+  }
+
+  const handleCreateFile = async (name, language) => {
+    try {
+      const res = await axios.post(
+        `${API_URL}/api/files/${roomId}`,
+        { name, language },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      setFiles((prev) => [...prev, res.data.file])
+      setActiveFile(res.data.file)
+      setLanguage(language)
+      toast.success(`Created ${name}`)
+    } catch {
+      toast.error('Failed to create file')
+    }
+  }
+
+  const handleDeleteFile = async (fileId) => {
+    if (files.length <= 1) {
+      toast.error('Cannot delete the last file')
+      return
+    }
+    try {
+      await axios.delete(
+        `${API_URL}/api/files/${fileId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      setFiles((prev) => prev.filter((f) => f.id !== fileId))
+      if (activeFile?.id === fileId) {
+        const remaining = files.filter((f) => f.id !== fileId)
+        setActiveFile(remaining[0])
+      }
+      toast.success('File deleted')
+    } catch {
+      toast.error('Failed to delete file')
+    }
   }
 
   // ── Get current code from editor ──────────────────────
@@ -360,6 +448,15 @@ const EditorRoom = () => {
 
       {/* ── Main layout ────────────────────────────── */}
       <div style={styles.layout}>
+        {/* File tree */}
+        <FileTree
+          files={files}
+          activeFile={activeFile}
+          onSelectFile={handleSelectFile}
+          onCreateFile={handleCreateFile}
+          onDeleteFile={handleDeleteFile}
+        />
+
         {/* Editor + Terminal column */}
         <div style={styles.editorCol}>
           {/* Monaco Editor */}
@@ -422,8 +519,6 @@ const EditorRoom = () => {
     </div>
   );
 }
-
-// ── Styles ───────────────────────────────────────────────
 const styles = {
   page: {
     height: '100vh', display: 'flex',
