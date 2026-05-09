@@ -16,9 +16,9 @@
   --border: #21262d;
   --border-bright: #30363d;
 
-  --font-display: 'Syne', sans-serif;
-  --font-mono: 'Space Mono', monospace;
-  --font-body: 'Inter', sans-serif;
+  --font-display: 'Outfit', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
 
   --radius-sm: 6px;
   --radius-md: 12px;
@@ -77,6 +77,26 @@ body {
   color: var(--accent-cyan);
 }
 
+/* ── Typography Scale ───────────────────────────────────── */
+:root {
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --text-5xl: 3rem;
+  --text-6xl: 3.75rem;
+
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --font-extrabold: 800;
+}
+
 /* ── Typography ─────────────────────────────────────────── */
 h1,
 h2,
@@ -85,8 +105,75 @@ h4,
 h5,
 h6 {
   font-family: var(--font-display);
-  line-height: 1.2;
+  line-height: 1.15;
   color: var(--text-primary);
+  font-weight: var(--font-bold);
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: var(--text-5xl);
+  font-weight: var(--font-extrabold);
+  letter-spacing: -0.03em;
+}
+
+h2 {
+  font-size: var(--text-4xl);
+  font-weight: var(--font-extrabold);
+  letter-spacing: -0.025em;
+}
+
+h3 {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+}
+
+h4 {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+}
+
+h5 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+}
+
+h6 {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+}
+
+p {
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+/* Bold text utilities */
+.text-bold {
+  font-weight: var(--font-bold);
+}
+
+.text-semibold {
+  font-weight: var(--font-semibold);
+}
+
+.text-medium {
+  font-weight: var(--font-medium);
+}
+
+/* Display text - extra bold for hero sections */
+.display-text {
+  font-size: var(--text-6xl);
+  font-weight: var(--font-extrabold);
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+/* Lead text - larger body text */
+.lead {
+  font-size: var(--text-lg);
+  line-height: 1.7;
+  color: var(--text-secondary);
 }
 
 code,
@@ -113,22 +200,24 @@ a:hover {
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 10px 22px;
+  padding: 12px 24px;
   border-radius: var(--radius-sm);
   font-family: var(--font-body);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: var(--font-semibold);
   cursor: pointer;
   border: none;
   transition: all 0.2s ease;
   white-space: nowrap;
+  letter-spacing: 0.01em;
 }
 
 .btn-primary {
   background: var(--accent-cyan);
   color: var(--bg-primary);
-  font-weight: 600;
+  font-weight: var(--font-bold);
 }
 
 .btn-primary:hover {
@@ -183,13 +272,15 @@ a:hover {
 /* ── Inputs ─────────────────────────────────────────────── */
 .input {
   width: 100%;
-  padding: 10px 14px;
+  padding: 12px 16px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: var(--font-medium);
+  letter-spacing: 0.01em;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   outline: none;
 }
@@ -326,8 +417,8 @@ a:hover {
 /* ── Grid background pattern ────────────────────────────── */
 .grid-bg {
   background-image:
-    linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(0, 212, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.08) 1px, transparent 1px);
   background-size: 40px 40px;
 }
 
@@ -371,6 +462,11 @@ a:hover {
       var(--border-bright),
       transparent);
   margin: 24px 0;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
 }
 
 @keyframes spin {

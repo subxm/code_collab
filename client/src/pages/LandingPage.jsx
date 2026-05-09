@@ -14,6 +14,36 @@ import {
   Cpu,
 } from "lucide-react";
 
+// ── Typing effect hook ──────────────────────────────────
+const useTypingEffect = (text, speed = 80, startDelay = 500) => {
+  const [displayedText, setDisplayedText] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [startTyping, setStartTyping] = useState(false);
+
+  useEffect(() => {
+    const startTimeout = setTimeout(() => setStartTyping(true), startDelay);
+    return () => clearTimeout(startTimeout);
+  }, [startDelay]);
+
+  useEffect(() => {
+    if (!startTyping) return;
+    setIsTyping(true);
+    let index = 0;
+    const interval = setInterval(() => {
+      if (index <= text.length) {
+        setDisplayedText(text.slice(0, index));
+        index++;
+      } else {
+        clearInterval(interval);
+        setIsTyping(false);
+      }
+    }, speed);
+    return () => clearInterval(interval);
+  }, [text, speed, startTyping]);
+
+  return { displayedText, isTyping };
+};
+
 // ── Animated counter hook ────────────────────────────────
 const useCounter = (end, duration = 2000, inView) => {
   const [count, setCount] = useState(0);
@@ -221,6 +251,10 @@ const LandingPage = () => {
   const heroY = useTransform(scrollYProgress, [0, 0.3], [0, -60]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.25], [1, 0]);
 
+  // Typing effect
+  const { displayedText: firstLine, isTyping: firstTyping } = useTypingEffect("Code Together,", 80, 800);
+  const { displayedText: secondLine, isTyping: secondTyping } = useTypingEffect("Ship Faster.", 80, 1500);
+
   const statsRef = useRef(null);
   const statsInView = useInView(statsRef, { once: true });
 
@@ -291,13 +325,19 @@ const LandingPage = () => {
 
           <motion.h1
             style={styles.heroTitle}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
           >
-            Code Together,
+            <span style={styles.typingText}>
+              {firstLine}
+              {firstTyping && <span style={styles.cursor}>|</span>}
+            </span>
             <br />
-            <span style={styles.heroAccent}>Ship Faster.</span>
+            <span style={styles.heroAccent}>
+              {secondLine}
+              {secondTyping && <span style={styles.cursor}>|</span>}
+            </span>
           </motion.h1>
 
           <motion.p
@@ -333,46 +373,29 @@ const LandingPage = () => {
               Sign In
             </button>
           </motion.div>
-
-          {/* Tech badges */}
-          <motion.div
-            style={styles.techBadges}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.9 }}
-          >
-            {["React", "Node.js", "Yjs CRDTs", "Groq AI", "MySQL"].map((t) => (
-              <span key={t} style={styles.techBadge}>
-                {t}
-              </span>
-            ))}
-          </motion.div>
         </div>
 
-        {/* Code Preview */}
+        {/* Code Preview with floating animation */}
         <motion.div
           style={styles.heroCode}
-          initial={{ opacity: 0, x: 60 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ opacity: 0, x: 60, y: 40 }}
+          animate={{ opacity: 1, x: 0, y: 0 }}
+          transition={{
+            duration: 0.8,
+            delay: 0.5,
+            ease: [0.22, 1, 0.36, 1]
+          }}
         >
-          <CodePreview />
-          {/* Floating user avatars */}
           <motion.div
-            style={styles.floatingUser1}
-            animate={{ y: [0, -8, 0] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            animate={{ y: [0, -12, 0] }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            style={styles.floatingEditor}
           >
-            <div style={{ ...styles.avatar, background: "#ff6b6b" }}>A</div>
-            <span style={styles.avatarLabel}>Alex is typing…</span>
-          </motion.div>
-          <motion.div
-            style={styles.floatingUser2}
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <div style={{ ...styles.avatar, background: "#00d4ff" }}>S</div>
-            <span style={styles.avatarLabel}>Sam reviewing</span>
+            <CodePreview />
           </motion.div>
         </motion.div>
       </motion.section>
@@ -671,6 +694,14 @@ const styles = {
     WebkitBackgroundClip: "text",
     WebkitTextFillColor: "transparent",
   },
+  typingText: {
+    color: "var(--text-primary)",
+  },
+  cursor: {
+    color: "var(--accent-cyan)",
+    marginLeft: 2,
+    animation: "blink 1s infinite",
+  },
   heroSub: {
     fontSize: "17px",
     color: "var(--text-secondary)",
@@ -678,17 +709,11 @@ const styles = {
     marginBottom: 32,
   },
   heroCtas: { display: "flex", gap: 12, marginBottom: 32 },
-  techBadges: { display: "flex", flexWrap: "wrap", gap: 8 },
-  techBadge: {
-    padding: "4px 10px",
-    borderRadius: 4,
-    background: "var(--bg-elevated)",
-    border: "1px solid var(--border)",
-    fontSize: "11px",
-    color: "var(--text-muted)",
-    fontFamily: "var(--font-mono)",
-  },
   heroCode: { flex: 1, position: "relative", minWidth: 0 },
+  floatingEditor: {
+    position: "relative",
+    width: "100%",
+  },
 
   codePreview: {
     background: "var(--bg-card)",
@@ -727,47 +752,6 @@ const styles = {
   },
   lineNum: { color: "#484f58", width: 16, textAlign: "right", flexShrink: 0 },
   cursor: { color: "var(--accent-cyan)", fontFamily: "var(--font-mono)" },
-
-  floatingUser1: {
-    position: "absolute",
-    top: -16,
-    right: 20,
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    background: "var(--bg-elevated)",
-    border: "1px solid var(--border)",
-    borderRadius: 100,
-    padding: "6px 12px 6px 6px",
-  },
-  floatingUser2: {
-    position: "absolute",
-    bottom: -16,
-    left: 20,
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    background: "var(--bg-elevated)",
-    border: "1px solid var(--border)",
-    borderRadius: 100,
-    padding: "6px 12px 6px 6px",
-  },
-  avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: "50%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "12px",
-    fontWeight: 700,
-    color: "#fff",
-  },
-  avatarLabel: {
-    fontSize: "12px",
-    color: "var(--text-secondary)",
-    fontFamily: "var(--font-mono)",
-  },
 
   stats: {
     borderTop: "1px solid var(--border)",
