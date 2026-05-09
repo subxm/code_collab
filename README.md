@@ -31,11 +31,13 @@ Write, run, and discuss code together — powered by AI.
 - **AI Pair Programmer** — Context-aware AI assistant (Groq / LLaMA 3) that reads your current code and responds with streaming output
 - **Live Code Execution** — Run code in 8+ languages directly in the browser via Judge0 CE. Results broadcast to all room members
 - **Monaco Editor** — The same editor that powers VS Code, with syntax highlighting, bracket matching, and font ligatures
+- **Multi-file Support** — Create, edit, and switch between multiple files in a single room
 - **Team Chat** — Real-time chat panel persisted to the database, visible to everyone in the room
 - **Room System** — Create public or private rooms, join via invite code, manage multiple sessions
 - **Online Presence** — See exactly who is in the room live with color-coded user indicators
 - **Save & Download** — Save code to the database or download it directly to your computer with the correct file extension
 - **JWT Auth** — Secure authentication with access tokens + refresh token rotation via HTTP-only cookies
+- **Password Reset** — Forgot password flow with token-based reset
 
 ---
 
@@ -49,8 +51,9 @@ Write, run, and discuss code together — powered by AI.
 | Socket.io Client | Real-time bidirectional communication |
 | Zustand | Lightweight global state management |
 | React Router v6 | Client-side routing |
-| TailwindCSS | Utility-first styling |
+| Framer Motion | Animation library |
 | Axios | HTTP client with interceptors |
+| Outfit / Plus Jakarta Sans / JetBrains Mono | Typography |
 
 ### Backend
 | Technology | Purpose |
@@ -228,21 +231,19 @@ codecollab/
 ## 🗄 Database Schema
 
 ```
-User ─────────┬──── RoomMember ────── Room ──── Message
+User ─────────┬──── RoomMember ────── Room ──── File
               │                         │
               └──── Message             └──── Snapshot
-              │
-              └──── Session
 ```
 
 | Model | Description |
 |---|---|
-| `User` | Registered user with hashed password |
-| `Room` | A coding session with language, code state, and invite code |
+| `User` | Registered user with hashed password, reset tokens |
+| `Room` | A coding session with language settings |
+| `File` | Code files within a room (supports multi-file) |
 | `RoomMember` | Join table linking users to rooms with roles |
 | `Message` | Chat messages (type: `text` or `ai`) |
 | `Snapshot` | Point-in-time saves of room code |
-| `Session` | Refresh token store for auth rotation |
 
 ---
 
@@ -256,6 +257,8 @@ User ─────────┬──── RoomMember ────── Ro
 | `POST` | `/api/auth/login` | Sign in | ❌ |
 | `POST` | `/api/auth/logout` | Sign out + clear cookie | ❌ |
 | `POST` | `/api/auth/refresh` | Rotate refresh token | ❌ |
+| `POST` | `/api/auth/forgot-password` | Request password reset | ❌ |
+| `POST` | `/api/auth/reset-password` | Reset password with token | ❌ |
 | `GET` | `/api/auth/me` | Get current user | ✅ |
 
 ### Rooms
@@ -270,6 +273,14 @@ User ─────────┬──── RoomMember ────── Ro
 | `POST` | `/api/rooms/join/:inviteCode` | Join a room | ✅ |
 | `PATCH` | `/api/rooms/:id/code` | Save current code | ✅ |
 | `POST` | `/api/rooms/:id/snapshot` | Create a code snapshot | ✅ |
+
+### Files
+| Method | Endpoint | Description | Auth |
+|---|---|---|---|
+| `GET` | `/api/files/:roomId` | Get all files in a room | ✅ |
+| `POST` | `/api/files/:roomId` | Create a new file | ✅ |
+| `PUT` | `/api/files/:fileId` | Update file content/name | ✅ |
+| `DELETE` | `/api/files/:fileId` | Delete a file | ✅ |
 
 ### AI & Execution
 
@@ -385,6 +396,7 @@ npm run build
 ## 🛣 Roadmap
 
 - [x] Yjs CRDT integration for true conflict-free collaborative editing
+- [x] Multi-file support for collaborative coding sessions
 - [ ] Session recording and playback
 - [ ] GitHub integration — push final code directly to a repo
 - [ ] Code annotation — pin comments to specific lines
