@@ -190,6 +190,9 @@ a {
 /* Nav link hover state */
 .nav-link:hover {
   color: var(--accent-cyan) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 6px;
+  text-decoration-thickness: 2px;
 }
 
 a:hover {
@@ -467,6 +470,15 @@ a:hover {
 @keyframes blink {
   0%, 50% { opacity: 1; }
   51%, 100% { opacity: 0; }
+}
+
+@keyframes scrollStats {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 @keyframes spin {

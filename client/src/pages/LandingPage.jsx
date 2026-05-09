@@ -12,6 +12,13 @@ import {
   Globe,
   Lock,
   Cpu,
+  Database,
+  FileCode,
+  Box,
+  Circle,
+  Sparkles,
+  Workflow,
+  Layers,
 } from "lucide-react";
 
 // ── Typing effect hook ──────────────────────────────────
@@ -268,7 +275,12 @@ const LandingPage = () => {
         transition={{ duration: 0.5 }}
       >
         <div style={styles.navInner}>
-          <div style={styles.logo}>
+          <div
+            style={styles.logoLink}
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            role="button"
+            tabIndex={0}
+          >
             <Code2 size={20} color="var(--accent-cyan)" />
             <span style={styles.logoText}>CodeCollab</span>
           </div>
@@ -365,14 +377,7 @@ const LandingPage = () => {
               Start Collaborating
               <ChevronRight size={16} />
             </button>
-            <button
-              className="btn btn-secondary"
-              onClick={() => navigate("/login")}
-              style={{ padding: "13px 28px", fontSize: "15px" }}
-            >
-              Sign In
-            </button>
-          </motion.div>
+            </motion.div>
         </div>
 
         {/* Code Preview with floating animation */}
@@ -400,36 +405,48 @@ const LandingPage = () => {
         </motion.div>
       </motion.section>
 
-      {/* ── Stats ────────────────────────────────────── */}
-      <section ref={statsRef} style={styles.stats}>
-        <div style={styles.statsInner}>
-          <StatCard
-            end={40}
-            suffix="+"
-            label="Languages Supported"
-            inView={statsInView}
-          />
-          <div style={styles.statDivider} />
-          <StatCard
-            end={50}
-            suffix="ms"
-            label="Avg Sync Latency"
-            inView={statsInView}
-          />
-          <div style={styles.statDivider} />
-          <StatCard
-            end={4}
-            suffix=""
-            label="AI Features Built-in"
-            inView={statsInView}
-          />
-          <div style={styles.statDivider} />
-          <StatCard
-            end={10}
-            suffix="k+"
-            label="Rooms Created"
-            inView={statsInView}
-          />
+      {/* ── Tech Stack Ticker ────────────────────────────────────── */}
+      <section ref={statsRef} style={styles.statsTicker}>
+        <div style={styles.statsTrack}>
+          {[
+            { name: "React", icon: <Box size={16} />, color: "#61DAFB" },
+            { name: "Node.js", icon: <Circle size={16} />, color: "#339933" },
+            { name: "Yjs CRDTs", icon: <Layers size={16} />, color: "#8B5CF6" },
+            { name: "Groq AI", icon: <Sparkles size={16} />, color: "#F59E0B" },
+            { name: "PostgreSQL", icon: <Database size={16} />, color: "#4169E1" },
+            { name: "Socket.io", icon: <Workflow size={16} />, color: "#010101" },
+            { name: "Prisma", icon: <Database size={16} />, color: "#2D3748" },
+            { name: "Monaco Editor", icon: <FileCode size={16} />, color: "#00D4FF" },
+            { name: "Express", icon: <Circle size={16} />, color: "#000000" },
+            { name: "Framer Motion", icon: <Zap size={16} />, color: "#0055FF" },
+            { name: "Vite", icon: <Zap size={16} />, color: "#646CFF" },
+            { name: "TypeScript", icon: <Code2 size={16} />, color: "#3178C6" },
+          ].map((tech, i) => (
+            <div key={i} style={styles.techBadgeTicker}>
+              <span style={{ ...styles.techIcon, color: tech.color }}>{tech.icon}</span>
+              <span style={styles.techName}>{tech.name}</span>
+            </div>
+          ))}
+          {/* Duplicate for seamless loop */}
+          {[
+            { name: "React", icon: <Box size={16} />, color: "#61DAFB" },
+            { name: "Node.js", icon: <Circle size={16} />, color: "#339933" },
+            { name: "Yjs CRDTs", icon: <Layers size={16} />, color: "#8B5CF6" },
+            { name: "Groq AI", icon: <Sparkles size={16} />, color: "#F59E0B" },
+            { name: "PostgreSQL", icon: <Database size={16} />, color: "#4169E1" },
+            { name: "Socket.io", icon: <Workflow size={16} />, color: "#010101" },
+            { name: "Prisma", icon: <Database size={16} />, color: "#2D3748" },
+            { name: "Monaco Editor", icon: <FileCode size={16} />, color: "#00D4FF" },
+            { name: "Express", icon: <Circle size={16} />, color: "#000000" },
+            { name: "Framer Motion", icon: <Zap size={16} />, color: "#0055FF" },
+            { name: "Vite", icon: <Zap size={16} />, color: "#646CFF" },
+            { name: "TypeScript", icon: <Code2 size={16} />, color: "#3178C6" },
+          ].map((tech, i) => (
+            <div key={`dup-${i}`} style={styles.techBadgeTicker}>
+              <span style={{ ...styles.techIcon, color: tech.color }}>{tech.icon}</span>
+              <span style={styles.techName}>{tech.name}</span>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -437,9 +454,6 @@ const LandingPage = () => {
       <section id="features" style={styles.section}>
         <FadeInSection>
           <div style={styles.sectionHeader}>
-            <span className="badge badge-green" style={{ marginBottom: 16 }}>
-              Features
-            </span>
             <h2 style={styles.sectionTitle}>
               Everything you need to
               <br />
@@ -505,9 +519,6 @@ const LandingPage = () => {
       >
         <FadeInSection>
           <div style={styles.sectionHeader}>
-            <span className="badge badge-cyan" style={{ marginBottom: 16 }}>
-              How it works
-            </span>
             <h2 style={styles.sectionTitle}>
               Up and running
               <br />
@@ -581,7 +592,12 @@ const LandingPage = () => {
       {/* ── Footer ───────────────────────────────────── */}
       <footer style={styles.footer}>
         <div style={styles.footerInner}>
-          <div style={styles.logo}>
+          <div
+            style={styles.logoLink}
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            role="button"
+            tabIndex={0}
+          >
             <Code2 size={16} color="var(--accent-cyan)" />
             <span style={{ ...styles.logoText, fontSize: "14px" }}>
               CodeCollab
@@ -627,7 +643,8 @@ const styles = {
     alignItems: "center",
     justifyContent: "space-between",
   },
-  logo: { display: "flex", alignItems: "center", gap: 10 },
+  logo: { display: "flex", alignItems: "center", gap: 10, cursor: "pointer" },
+  logoLink: { display: "flex", alignItems: "center", gap: 10, textDecoration: "none", cursor: "pointer" },
   logoText: {
     fontFamily: "var(--font-display)",
     fontWeight: 700,
@@ -636,12 +653,13 @@ const styles = {
   },
   navLinks: { display: "flex", gap: 32 },
   navLink: {
-    color: "var(--text-secondary)",
-    fontSize: "14px",
-    fontWeight: 500,
+    color: "var(--text-primary)",
+    fontSize: "15px",
+    fontWeight: 600,
     transition: "color 0.2s",
     cursor: "pointer",
     textDecoration: "none",
+    letterSpacing: "0.01em",
   },
   navActions: { display: "flex", gap: 10 },
 
@@ -734,10 +752,11 @@ const styles = {
   dot: { width: 12, height: 12, borderRadius: "50%" },
   codeFileName: {
     fontFamily: "var(--font-mono)",
-    fontSize: "12px",
-    color: "var(--text-muted)",
+    fontSize: "13px",
+    color: "var(--text-secondary)",
     display: "flex",
     alignItems: "center",
+    fontWeight: 500,
   },
   codeBody: { padding: "16px 0" },
   codeLine: {
@@ -753,19 +772,39 @@ const styles = {
   lineNum: { color: "#484f58", width: 16, textAlign: "right", flexShrink: 0 },
   cursor: { color: "var(--accent-cyan)", fontFamily: "var(--font-mono)" },
 
-  stats: {
+  statsTicker: {
     borderTop: "1px solid var(--border)",
     borderBottom: "1px solid var(--border)",
     background: "var(--bg-secondary)",
+    overflow: "hidden",
+    padding: "48px 0",
   },
-  statsInner: {
-    maxWidth: 1200,
-    margin: "0 auto",
-    padding: "48px 24px",
-    display: "grid",
-    gridTemplateColumns: "repeat(7, 1fr)",
+  statsTrack: {
+    display: "flex",
     alignItems: "center",
-    gap: 0,
+    gap: 24,
+    animation: "scrollStats 25s linear infinite",
+    width: "fit-content",
+  },
+  techBadgeTicker: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: "16px 32px",
+    background: "var(--bg-card)",
+    border: "1px solid var(--border)",
+    borderRadius: 10,
+    whiteSpace: "nowrap",
+  },
+  techIcon: {
+    display: "flex",
+    alignItems: "center",
+  },
+  techName: {
+    fontFamily: "var(--font-mono)",
+    fontSize: "16px",
+    fontWeight: 600,
+    color: "var(--text-primary)",
   },
   statCard: {
     display: "flex",
@@ -800,11 +839,12 @@ const styles = {
   },
   sectionHeader: { textAlign: "center", marginBottom: 64 },
   sectionTitle: {
-    fontSize: "clamp(32px, 4vw, 48px)",
+    fontSize: "clamp(36px, 5vw, 56px)",
     fontWeight: 800,
-    lineHeight: 1.15,
+    lineHeight: 1.1,
     marginBottom: 16,
-    letterSpacing: "-0.02em",
+    letterSpacing: "-0.03em",
+    color: "var(--text-primary)",
   },
   sectionSub: {
     fontSize: "16px",
