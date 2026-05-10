@@ -16,6 +16,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const GOOGLE_AUTH_URL = `${API_URL.replace("/api", "")}/api/auth/google`;
 
 // Password strength checker
 const getStrength = (password) => {
@@ -65,7 +66,11 @@ const RegisterPage = () => {
   };
 
   const handleOAuthLogin = (provider) => {
-    toast.error(`${provider} login coming soon!`);
+    if (provider === "Google") {
+      window.location.href = GOOGLE_AUTH_URL;
+    } else {
+      toast.error(`${provider} login coming soon!`);
+    }
   };
 
   const handleSubmit = async (e) => {
