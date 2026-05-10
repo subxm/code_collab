@@ -451,7 +451,7 @@ const LandingPage = () => {
       </section>
 
       {/* ── Features ─────────────────────────────────── */}
-      <section id="features" style={styles.section}>
+      <section id="features" className="landing-section" style={styles.section}>
         <FadeInSection>
           <div style={styles.sectionHeader}>
             <h2 style={styles.sectionTitle}>
@@ -515,6 +515,7 @@ const LandingPage = () => {
       {/* ── How it works ─────────────────────────────── */}
       <section
         id="how"
+        className="landing-section"
         style={{ ...styles.section, background: "var(--bg-secondary)" }}
       >
         <FadeInSection>
@@ -570,7 +571,7 @@ const LandingPage = () => {
 
       {/* ── CTA ──────────────────────────────────────── */}
       <FadeInSection>
-        <section style={styles.cta}>
+        <section className="cta-section" style={styles.cta}>
           <div style={styles.ctaGlow} />
           <span className="badge badge-cyan" style={{ marginBottom: 20 }}>
             <Zap size={10} /> Start Free
@@ -590,7 +591,7 @@ const LandingPage = () => {
       </FadeInSection>
 
       {/* ── Footer ───────────────────────────────────── */}
-      <footer style={styles.footer}>
+      <footer className="footer-inner" style={styles.footer}>
         <div style={styles.footerInner}>
           <div
             style={styles.logoLink}
