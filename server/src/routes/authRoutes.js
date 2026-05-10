@@ -11,51 +11,25 @@ router.post("/login", login);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 
-// Debug test
-router.get("/test", (req, res) => {
-  res.json({ message: "Auth routes working!" });
-});
-
 // Google OAuth routes
 router.get(
   "/google",
-  (req, res, next) => {
-    console.log("📍 /google hit, attempting OAuth...");
-    passport.authenticate("google", {
-      scope: ["profile", "email"],
-    }, (err, user, info) => {
-      if (err) {
-        console.error("Google auth error:", err);
-        return res.redirect(`${process.env.CLIENT_URL}/login?error=google_failed`);
-      }
-      // This shouldn't run for authorization flow - just redirect
-    })(req, res, next);
-  }
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+  })
 );
 
-// Explicit error handler for callback
+// Callback handler
 router.get(
   "/google/callback",
-  (req, res, next) => {
-    console.log("📍 Google callback hit, query:", req.query);
-    passport.authenticate("google", { session: false }, (err, user, info) => {
-      console.log("🔐 Auth result:", { err: err?.message, user: !!user, info });
-      if (err) {
-        console.error("Google OAuth callback error:", err);
-        return res.redirect(`${process.env.CLIENT_URL}/login?error=oauth_failed`);
-      }
-      if (!user) {
-        console.error("❌ No user returned from Google OAuth");
-        return res.redirect(`${process.env.CLIENT_URL}/login?error=no_user`);
-      }
-      const token = jwt.sign(
-        { userId: user.id, username: user.username },
-        process.env.JWT_SECRET,
-        { expiresIn: "7d" }
-      );
-      console.log("✅ Generated token, redirecting to:", `${process.env.CLIENT_URL}/oauth-callback?token=${token.substring(0, 20)}...`);
-      res.redirect(`${process.env.CLIENT_URL}/oauth-callback?token=${token}`);
-    })(req, res, next);
+  passport.authenticate("google", { session: false }),
+  (req, res) => {
+    const token = jwt.sign(
+      { userId: req.user.id, username: req.user.username },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+    res.redirect(`${process.env.CLIENT_URL}/oauth-callback?token=${token}`);
   }
 );
 

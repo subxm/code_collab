@@ -54,9 +54,11 @@ const LoginPage = () => {
 
   const handleOAuthLogin = (provider) => {
     if (provider === "Google") {
-      alert("OAuth URL: " + GOOGLE_AUTH_URL);
       window.location.href = GOOGLE_AUTH_URL;
-    } else {
+    } else if (provider === "GitHub") {
+      toast.error(`${provider} login coming soon!`);
+    }
+  };
       toast.error(`${provider} login coming soon!`);
     }
   };
