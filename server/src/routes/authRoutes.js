@@ -19,9 +19,18 @@ router.get("/test", (req, res) => {
 // Google OAuth routes
 router.get(
   "/google",
-  passport.authenticate("google", {
-    scope: ["profile", "email"],
-  })
+  (req, res, next) => {
+    console.log("📍 /google hit, attempting OAuth...");
+    passport.authenticate("google", {
+      scope: ["profile", "email"],
+    }, (err, user, info) => {
+      if (err) {
+        console.error("Google auth error:", err);
+        return res.redirect(`${process.env.CLIENT_URL}/login?error=google_failed`);
+      }
+      // This shouldn't run for authorization flow - just redirect
+    })(req, res, next);
+  }
 );
 
 // Explicit error handler for callback
