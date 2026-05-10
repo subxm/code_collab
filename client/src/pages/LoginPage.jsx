@@ -59,9 +59,6 @@ const LoginPage = () => {
       toast.error(`${provider} login coming soon!`);
     }
   };
-      toast.error(`${provider} login coming soon!`);
-    }
-  };
 
   return (
     <div style={styles.page} className="grid-bg">
