@@ -8,6 +8,10 @@ const prisma = require("../prismaClient");
 const callbackURL = process.env.GOOGLE_CALLBACK_URL ||
   (process.env.SERVER_URL ? `${process.env.SERVER_URL}/api/auth/google/callback` : undefined);
 
+console.log("🔐 Google OAuth Config:");
+console.log("  - ClientID set:", !!process.env.GOOGLE_CLIENT_ID);
+console.log("  - Callback URL:", callbackURL);
+
 passport.use(
   new GoogleStrategy(
     {
