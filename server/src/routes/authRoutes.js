@@ -23,6 +23,7 @@ router.get(
 router.get(
   "/google/callback",
   (req, res, next) => {
+    console.log("📍 Google callback hit, query:", req.query);
     passport.authenticate("google", { session: false }, (err, user, info) => {
       if (err) {
         console.error("Google OAuth callback error:", err);
