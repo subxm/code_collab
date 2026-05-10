@@ -7,9 +7,9 @@ import axios from "axios";
 import toast from "react-hot-toast";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const GOOGLE_AUTH_URL = API_URL.endsWith("/api")
-  ? `${API_URL.replace("/api", "")}/api/auth/google`
-  : `${API_URL}/api/auth/google`;
+const GOOGLE_AUTH_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL.replace("/api", "")}/api/auth/google`
+  : "http://localhost:5000/api/auth/google";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -54,7 +54,7 @@ const LoginPage = () => {
 
   const handleOAuthLogin = (provider) => {
     if (provider === "Google") {
-      toast.success(`Logging in with Google...`);
+      alert("OAuth URL: " + GOOGLE_AUTH_URL);
       window.location.href = GOOGLE_AUTH_URL;
     } else {
       toast.error(`${provider} login coming soon!`);
