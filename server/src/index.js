@@ -2,8 +2,12 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const http = require("http");
+const passport = require("passport");
 
 dotenv.config();
+
+// Initialize passport
+require("./config/passport");
 
 const { initCollaboration } = require("./ws/collaboration");
 
@@ -21,6 +25,9 @@ app.use(
 );
 
 app.use(express.json());
+
+// ── Passport ──────────────────────────────────────────────
+app.use(passport.initialize());
 
 // ── Routes ────────────────────────────────────────────────
 const authRoutes = require("./routes/authRoutes");

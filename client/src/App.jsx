@@ -6,6 +6,7 @@ import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import Dashboard from "./pages/Dashboard";
 import EditorRoom from "./pages/EditorRoom";
+import OAuthCallback from "./pages/OAuthCallback";
 
 // Protected route wrapper
 const ProtectedRoute = ({ children }) => {
@@ -20,6 +21,7 @@ const AppRoutes = () => (
     <Route path="/login" element={<LoginPage />} />
     <Route path="/register" element={<RegisterPage />} />
     <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+    <Route path="/oauth-callback" element={<OAuthCallback />} />
     <Route
       path="/dashboard"
       element={
