@@ -11,6 +11,11 @@ router.post("/login", login);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 
+// Debug test
+router.get("/test", (req, res) => {
+  res.json({ message: "Auth routes working!" });
+});
+
 // Google OAuth routes
 router.get(
   "/google",

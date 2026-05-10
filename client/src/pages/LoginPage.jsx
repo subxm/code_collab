@@ -54,7 +54,7 @@ const LoginPage = () => {
 
   const handleOAuthLogin = (provider) => {
     if (provider === "Google") {
-      console.log("🔐 Redirecting to Google OAuth:", GOOGLE_AUTH_URL);
+      toast.success(`Logging in with Google...`);
       window.location.href = GOOGLE_AUTH_URL;
     } else {
       toast.error(`${provider} login coming soon!`);
