@@ -641,10 +641,14 @@ const styles = {
     fontFamily: 'var(--font-display)',
     marginBottom: 10, color: 'var(--text-primary)',
   },
-  roomMeta: { display: 'flex', gap: 16, marginBottom: 14 },
+  roomMeta: { display: 'flex', gap: 10, marginBottom: 14 },
   metaItem: {
-    display: 'flex', alignItems: 'center', gap: 5,
-    fontSize: '12px', color: 'var(--text-muted)',
+    display: 'flex', alignItems: 'center', gap: 6,
+    fontSize: '12px', color: 'var(--text-secondary)',
+    background: 'var(--bg-elevated)',
+    padding: '4px 10px',
+    borderRadius: 6,
+    border: '1px solid var(--border)',
   },
   roomFooter: {
     display: 'flex', alignItems: 'center',
