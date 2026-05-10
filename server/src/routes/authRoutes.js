@@ -19,18 +19,25 @@ router.get(
   })
 );
 
+// Explicit error handler for callback
 router.get(
   "/google/callback",
-  passport.authenticate("google", { session: false }),
-  (req, res) => {
-    // Generate JWT token after successful authentication
-    const token = jwt.sign(
-      { userId: req.user.id, username: req.user.username },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-    // Redirect to frontend with token
-    res.redirect(`${process.env.CLIENT_URL}/oauth-callback?token=${token}`);
+  (req, res, next) => {
+    passport.authenticate("google", { session: false }, (err, user, info) => {
+      if (err) {
+        console.error("Google OAuth callback error:", err);
+        return res.redirect(`${process.env.CLIENT_URL}/login?error=oauth_failed`);
+      }
+      if (!user) {
+        return res.redirect(`${process.env.CLIENT_URL}/login?error=no_user`);
+      }
+      const token = jwt.sign(
+        { userId: user.id, username: user.username },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+      res.redirect(`${process.env.CLIENT_URL}/oauth-callback?token=${token}`);
+    })(req, res, next);
   }
 );
 
