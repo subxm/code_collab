@@ -53,7 +53,7 @@ router.get(
         process.env.JWT_SECRET,
         { expiresIn: "7d" }
       );
-      console.log("✅ Generated token, redirecting to frontend");
+      console.log("✅ Generated token, redirecting to:", `${process.env.CLIENT_URL}/oauth-callback?token=${token.substring(0, 20)}...`);
       res.redirect(`${process.env.CLIENT_URL}/oauth-callback?token=${token}`);
     })(req, res, next);
   }
