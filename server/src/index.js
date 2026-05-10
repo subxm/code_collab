@@ -47,6 +47,12 @@ app.get("/", (req, res) => {
   res.json({ message: "CodeCollab API is running 🚀" });
 });
 
+// Catch-all for unmatched routes
+app.use((req, res) => {
+  console.log("❓ Unmatched route:", req.method, req.url);
+  res.status(404).json({ message: "Not found", path: req.url });
+});
+
 // ── WebSocket ─────────────────────────────────────────────
 initCollaboration(server);
 console.log("🔗 WebSocket collaboration initialized");
