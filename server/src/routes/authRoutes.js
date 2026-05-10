@@ -39,11 +39,13 @@ router.get(
   (req, res, next) => {
     console.log("📍 Google callback hit, query:", req.query);
     passport.authenticate("google", { session: false }, (err, user, info) => {
+      console.log("🔐 Auth result:", { err: err?.message, user: !!user, info });
       if (err) {
         console.error("Google OAuth callback error:", err);
         return res.redirect(`${process.env.CLIENT_URL}/login?error=oauth_failed`);
       }
       if (!user) {
+        console.error("❌ No user returned from Google OAuth");
         return res.redirect(`${process.env.CLIENT_URL}/login?error=no_user`);
       }
       const token = jwt.sign(
@@ -51,6 +53,7 @@ router.get(
         process.env.JWT_SECRET,
         { expiresIn: "7d" }
       );
+      console.log("✅ Generated token, redirecting to frontend");
       res.redirect(`${process.env.CLIENT_URL}/oauth-callback?token=${token}`);
     })(req, res, next);
   }
