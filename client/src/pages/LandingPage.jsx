@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, useScroll, useTransform, useInView } from "framer-motion";
+import { motion, useScroll, useTransform, useInView, AnimatePresence } from "framer-motion";
 import {
   Code2,
   Users,
@@ -19,7 +19,11 @@ import {
   Sparkles,
   Workflow,
   Layers,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "../context/ThemeContext";
+import Logo from "../components/Logo";
 
 // ── Typing effect hook ──────────────────────────────────
 const useTypingEffect = (text, speed = 80, startDelay = 500) => {
@@ -69,7 +73,7 @@ const useCounter = (end, duration = 2000, inView) => {
 };
 
 // ── Fade in on scroll ────────────────────────────────────
-const FadeInSection = ({ children, delay = 0, className = "" }) => {
+const FadeInSection = ({ children, delay = 0, className = "", style = {} }) => {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
   return (
@@ -79,6 +83,7 @@ const FadeInSection = ({ children, delay = 0, className = "" }) => {
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.7, delay, ease: [0.22, 1, 0.36, 1] }}
       className={className}
+      style={style}
     >
       {children}
     </motion.div>
@@ -103,17 +108,27 @@ const StatCard = ({ end, suffix, label, inView }) => {
 const FeatureCard = ({ icon: Icon, title, desc, accent, delay }) => {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
+  const [hovered, setHovered] = useState(false);
+
   return (
     <motion.div
       ref={ref}
       initial={{ opacity: 0, y: 50 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
-      style={{
-        ...styles.featureCard,
-        "--accent": accent,
+      whileHover={{
+        y: -6,
+        scale: 1.015,
+        borderColor: "var(--border-bright)",
+        boxShadow: "0 16px 36px rgba(0,0,0,0.6)"
       }}
-      whileHover={{ y: -6, transition: { duration: 0.2 } }}
+      transition={{
+        default: { duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] },
+        y: { type: "spring", stiffness: 300, damping: 20 },
+        scale: { type: "spring", stiffness: 300, damping: 20 }
+      }}
+      style={styles.featureCard}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       <div
         style={{
@@ -124,14 +139,176 @@ const FeatureCard = ({ icon: Icon, title, desc, accent, delay }) => {
       >
         <Icon size={22} color={accent} />
       </div>
-      <h3 style={styles.featureTitle}>{title}</h3>
+      <h3 style={{ ...styles.featureTitle, display: "flex", alignItems: "center", gap: 6 }}>
+        {title}
+        <motion.span
+          animate={{ x: hovered ? 4 : 0, opacity: hovered ? 1 : 0 }}
+          transition={{ duration: 0.2 }}
+          style={{ fontSize: "16px", color: "var(--accent-cyan)", display: "inline-block" }}
+        >
+          →
+        </motion.span>
+      </h3>
       <p style={styles.featureDesc}>{desc}</p>
     </motion.div>
   );
 };
 
+// ── Mock Code snippets ───────────────────────────────────
+const CODE_SNIPPETS = {
+  js: {
+    fileName: "main.js",
+    lines: [
+      { tokens: [{ t: "// Real-time collaboration", c: "#484f58" }] },
+      { tokens: [
+        { t: "const ", c: "#ff7b72" },
+        { t: "room", c: "#79c0ff" },
+        { t: " = ", c: "#e6edf3" },
+        { t: "await ", c: "#ff7b72" },
+        { t: "CodeCollab", c: "#ffa657" },
+        { t: ".", c: "#e6edf3" },
+        { t: "createRoom", c: "#d2a8ff" },
+        { t: "({", c: "#e6edf3" }
+      ] },
+      { tokens: [
+        { t: "  name", c: "#79c0ff" },
+        { t: ": ", c: "#e6edf3" },
+        { t: '"My Project"', c: "#a5d6ff" },
+        { t: ",", c: "#e6edf3" }
+      ] },
+      { tokens: [
+        { t: "  language", c: "#79c0ff" },
+        { t: ": ", c: "#e6edf3" },
+        { t: '"javascript"', c: "#a5d6ff" }
+      ] },
+      { tokens: [{ t: "})", c: "#e6edf3" }] },
+      { tokens: [] },
+      { tokens: [{ t: "// AI-powered review", c: "#484f58" }] },
+      { tokens: [
+        { t: "const ", c: "#ff7b72" },
+        { t: "review", c: "#79c0ff" },
+        { t: " = ", c: "#e6edf3" },
+        { t: "await ", c: "#ff7b72" },
+        { t: "AI", c: "#ffa657" },
+        { t: ".", c: "#e6edf3" },
+        { t: "reviewCode", c: "#d2a8ff" },
+        { t: "(code)", c: "#e6edf3" }
+      ] },
+      { tokens: [
+        { t: "console", c: "#ffa657" },
+        { t: ".", c: "#e6edf3" },
+        { t: "log", c: "#d2a8ff" },
+        { t: "(review.issues)", c: "#e6edf3" }
+      ] }
+    ],
+    cursors: [
+      { name: "Sarah", color: "#ff007f", top: 46, left: 165, x: [0, 20, 0], y: [0, -6, 0] },
+      { name: "Alex", color: "#00d4ff", top: 166, left: 240, x: [0, -15, 0], y: [0, 4, 0] }
+    ]
+  },
+  py: {
+    fileName: "main.py",
+    lines: [
+      { tokens: [{ t: "# Real-time collaboration", c: "#484f58" }] },
+      { tokens: [
+        { t: "room", c: "#79c0ff" },
+        { t: " = ", c: "#e6edf3" },
+        { t: "await ", c: "#ff7b72" },
+        { t: "CodeCollab", c: "#ffa657" },
+        { t: ".", c: "#e6edf3" },
+        { t: "create_room", c: "#d2a8ff" },
+        { t: "(", c: "#e6edf3" }
+      ] },
+      { tokens: [
+        { t: "    name", c: "#79c0ff" },
+        { t: "=", c: "#ff7b72" },
+        { t: '"My Project"', c: "#a5d6ff" },
+        { t: ",", c: "#e6edf3" }
+      ] },
+      { tokens: [
+        { t: "    language", c: "#79c0ff" },
+        { t: "=", c: "#ff7b72" },
+        { t: '"python"', c: "#a5d6ff" }
+      ] },
+      { tokens: [{ t: ")", c: "#e6edf3" }] },
+      { tokens: [] },
+      { tokens: [{ t: "# AI-powered review", c: "#484f58" }] },
+      { tokens: [
+        { t: "review", c: "#79c0ff" },
+        { t: " = ", c: "#e6edf3" },
+        { t: "await ", c: "#ff7b72" },
+        { t: "AI", c: "#ffa657" },
+        { t: ".", c: "#e6edf3" },
+        { t: "review_code", c: "#d2a8ff" },
+        { t: "(code)", c: "#e6edf3" }
+      ] },
+      { tokens: [
+        { t: "print", c: "#ffa657" },
+        { t: "(review", c: "#e6edf3" },
+        { t: ".", c: "#e6edf3" },
+        { t: "issues)", c: "#79c0ff" }
+      ] }
+    ],
+    cursors: [
+      { name: "Yuki", color: "#e8ff47", top: 46, left: 185, x: [0, -10, 0], y: [0, 8, 0] },
+      { name: "Sarah", color: "#ff007f", top: 166, left: 200, x: [0, 15, 0], y: [0, -4, 0] }
+    ]
+  },
+  cpp: {
+    fileName: "main.cpp",
+    lines: [
+      { tokens: [{ t: "// Real-time collaboration", c: "#484f58" }] },
+      { tokens: [
+        { t: "auto ", c: "#ff7b72" },
+        { t: "room", c: "#79c0ff" },
+        { t: " = co_await ", c: "#ff7b72" },
+        { t: "CodeCollab", c: "#ffa657" },
+        { t: "::", c: "#e6edf3" },
+        { t: "createRoom", c: "#d2a8ff" },
+        { t: "({", c: "#e6edf3" }
+      ] },
+      { tokens: [
+        { t: "    .name", c: "#79c0ff" },
+        { t: " = ", c: "#e6edf3" },
+        { t: '"My Project"', c: "#a5d6ff" },
+        { t: ",", c: "#e6edf3" }
+      ] },
+      { tokens: [
+        { t: "    .language", c: "#79c0ff" },
+        { t: " = ", c: "#e6edf3" },
+        { t: '"cpp"', c: "#a5d6ff" }
+      ] },
+      { tokens: [{ t: "});", c: "#e6edf3" }] },
+      { tokens: [] },
+      { tokens: [{ t: "// AI-powered review", c: "#484f58" }] },
+      { tokens: [
+        { t: "auto ", c: "#ff7b72" },
+        { t: "review", c: "#79c0ff" },
+        { t: " = co_await ", c: "#ff7b72" },
+        { t: "AI", c: "#ffa657" },
+        { t: "::", c: "#e6edf3" },
+        { t: "reviewCode", c: "#d2a8ff" },
+        { t: "(code);", c: "#e6edf3" }
+      ] },
+      { tokens: [
+        { t: "std", c: "#ffa657" },
+        { t: "::", c: "#e6edf3" },
+        { t: "cout", c: "#79c0ff" },
+        { t: " << ", c: "#e6edf3" },
+        { t: "review", c: "#79c0ff" },
+        { t: ".", c: "#e6edf3" },
+        { t: "issues;", c: "#79c0ff" }
+      ] }
+    ],
+    cursors: [
+      { name: "Alex", color: "#00d4ff", top: 46, left: 220, x: [0, 10, 0], y: [0, -6, 0] },
+      { name: "Yuki", color: "#e8ff47", top: 166, left: 280, x: [0, -20, 0], y: [0, 4, 0] }
+    ]
+  }
+};
+
 // ── Code preview block ───────────────────────────────────
-const CodePreview = () => {
+const CodePreview = ({ whileHover, transition }) => {
   const lines = [
     {
       tokens: [
@@ -197,7 +374,11 @@ const CodePreview = () => {
   ];
 
   return (
-    <div style={styles.codePreview}>
+    <motion.div 
+      style={styles.codePreview}
+      whileHover={whileHover}
+      transition={transition}
+    >
       {/* Window chrome */}
       <div style={styles.codeHeader}>
         <div style={styles.dots}>
@@ -206,7 +387,7 @@ const CodePreview = () => {
           <span style={{ ...styles.dot, background: "#28c840" }} />
         </div>
         <span style={styles.codeFileName}>
-          <Code2 size={12} style={{ marginRight: 6 }} />
+          <Logo size={12} style={{ marginRight: 6 }} />
           main.js — CodeCollab
         </span>
       </div>
@@ -247,29 +428,81 @@ const CodePreview = () => {
           </motion.span>
         </motion.div>
       </div>
-    </div>
+    </motion.div>
+  );
+};
+
+// ── Tech badge component ─────────────────────────────────
+const TechBadge = ({ tech }) => {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <motion.div
+      style={{
+        ...styles.techBadgeTicker,
+        borderColor: hovered ? "var(--border-bright)" : "var(--border)",
+        background: hovered ? "rgba(255, 255, 255, 0.03)" : "var(--bg-card)",
+      }}
+      whileHover={{ y: -4, scale: 1.05 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <span
+        style={{
+          ...styles.techIcon,
+          color: tech.color,
+          filter: hovered ? "none" : "grayscale(100%)",
+          opacity: hovered ? 1 : 0.4,
+          transition: "filter 0.3s ease, opacity 0.3s ease, color 0.3s ease",
+        }}
+      >
+        {tech.icon}
+      </span>
+      <span
+        style={{
+          ...styles.techName,
+          opacity: hovered ? 0.9 : 0.6,
+          transition: "opacity 0.3s ease",
+        }}
+      >
+        {tech.name}
+      </span>
+    </motion.div>
   );
 };
 
 // ── Main Landing Page ────────────────────────────────────
 const LandingPage = () => {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const { scrollYProgress } = useScroll();
   const heroY = useTransform(scrollYProgress, [0, 0.3], [0, -60]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.25], [1, 0]);
 
-  // Typing effect
-  const { displayedText: firstLine, isTyping: firstTyping } = useTypingEffect("Code Together,", 80, 800);
-  const { displayedText: secondLine, isTyping: secondTyping } = useTypingEffect("Ship Faster.", 80, 1500);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+
 
   const statsRef = useRef(null);
-  const statsInView = useInView(statsRef, { once: true });
 
   return (
     <div style={styles.page}>
       {/* ── Nav ─────────────────────────────────────── */}
       <motion.nav
-        style={styles.nav}
+        style={{
+          ...styles.nav,
+          background: scrolled ? "rgba(17, 17, 17, 0.75)" : "transparent",
+          backdropFilter: scrolled ? "blur(12px)" : "none",
+          borderBottomColor: scrolled ? "var(--border)" : "transparent",
+          transition: "background 0.3s, backdrop-filter 0.3s, border-color 0.3s",
+        }}
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -281,7 +514,7 @@ const LandingPage = () => {
             role="button"
             tabIndex={0}
           >
-            <Code2 size={20} color="var(--accent-cyan)" />
+            <Logo size={22} style={{ marginRight: 6 }} />
             <span style={styles.logoText}>CodeCollab</span>
           </div>
           <div style={styles.navLinks}>
@@ -296,14 +529,14 @@ const LandingPage = () => {
             <button
               className="btn btn-secondary"
               onClick={() => navigate("/login")}
-              style={{ padding: "8px 18px", fontSize: "13px" }}
+              style={{ padding: "8px 22px", fontSize: "13px", borderRadius: "24px", fontWeight: 600 }}
             >
               Sign in
             </button>
             <button
               className="btn btn-primary"
               onClick={() => navigate("/register")}
-              style={{ padding: "8px 18px", fontSize: "13px" }}
+              style={{ padding: "8px 22px", fontSize: "13px", borderRadius: "24px", fontWeight: 700 }}
             >
               Get Started
             </button>
@@ -316,39 +549,18 @@ const LandingPage = () => {
         style={{ ...styles.hero, y: heroY, opacity: heroOpacity }}
         className="grid-bg"
       >
-        {/* Ambient blobs */}
-        <div style={styles.blob1} />
-        <div style={styles.blob2} />
-
         <div style={styles.heroInner}>
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            <span
-              className="badge badge-cyan animate-float"
-              style={{ marginBottom: 24, display: "inline-flex" }}
-            >
-              <Zap size={10} />
-              AI-Powered Collaboration
-            </span>
-          </motion.div>
-
           <motion.h1
             style={styles.heroTitle}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
           >
-            <span style={styles.typingText}>
-              {firstLine}
-              {firstTyping && <span style={styles.cursor}>|</span>}
+            <span style={{ display: "block", marginBottom: "8px", color: "var(--text-primary)" }}>
+              Code Together,
             </span>
-            <br />
-            <span style={styles.heroAccent}>
-              {secondLine}
-              {secondTyping && <span style={styles.cursor}>|</span>}
+            <span style={{ ...styles.heroAccent, display: "block" }}>
+              Ship Faster.
             </span>
           </motion.h1>
 
@@ -377,7 +589,7 @@ const LandingPage = () => {
               Start Collaborating
               <ChevronRight size={16} />
             </button>
-            </motion.div>
+          </motion.div>
         </div>
 
         {/* Code Preview with floating animation */}
@@ -391,23 +603,25 @@ const LandingPage = () => {
             ease: [0.22, 1, 0.36, 1]
           }}
         >
-          <motion.div
-            animate={{ y: [0, -12, 0] }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-            style={styles.floatingEditor}
-          >
-            <CodePreview />
+          <motion.div style={styles.floatingEditor}>
+            <CodePreview 
+              whileHover={{
+                y: -12,
+                scale: 1.015,
+                borderColor: "var(--border-bright)",
+                boxShadow: "0 30px 100px rgba(0,0,0,0.75), 0 0 40px rgba(255, 255, 255, 0.08)"
+              }}
+              transition={{ type: "spring", stiffness: 200, damping: 18 }}
+            />
           </motion.div>
         </motion.div>
       </motion.section>
 
       {/* ── Tech Stack Ticker ────────────────────────────────────── */}
-      <section ref={statsRef} style={styles.statsTicker}>
-        <div style={styles.statsTrack}>
+      <section ref={statsRef} className="ticker-container">
+        <div className="ticker-mask-left" />
+        <div className="ticker-mask-right" />
+        <div className="stats-track" style={styles.statsTrack}>
           {[
             { name: "React", icon: <Box size={16} />, color: "#61DAFB" },
             { name: "Node.js", icon: <Circle size={16} />, color: "#339933" },
@@ -422,10 +636,7 @@ const LandingPage = () => {
             { name: "Vite", icon: <Zap size={16} />, color: "#646CFF" },
             { name: "TypeScript", icon: <Code2 size={16} />, color: "#3178C6" },
           ].map((tech, i) => (
-            <div key={i} style={styles.techBadgeTicker}>
-              <span style={{ ...styles.techIcon, color: tech.color }}>{tech.icon}</span>
-              <span style={styles.techName}>{tech.name}</span>
-            </div>
+            <TechBadge key={i} tech={tech} />
           ))}
           {/* Duplicate for seamless loop */}
           {[
@@ -442,10 +653,7 @@ const LandingPage = () => {
             { name: "Vite", icon: <Zap size={16} />, color: "#646CFF" },
             { name: "TypeScript", icon: <Code2 size={16} />, color: "#3178C6" },
           ].map((tech, i) => (
-            <div key={`dup-${i}`} style={styles.techBadgeTicker}>
-              <span style={{ ...styles.techIcon, color: tech.color }}>{tech.icon}</span>
-              <span style={styles.techName}>{tech.name}</span>
-            </div>
+            <TechBadge key={`dup-${i}`} tech={tech} />
           ))}
         </div>
       </section>
@@ -459,10 +667,6 @@ const LandingPage = () => {
               <br />
               collaborate on code
             </h2>
-            <p style={styles.sectionSub}>
-              From real-time editing to AI-powered reviews — all in one
-              platform.
-            </p>
           </div>
         </FadeInSection>
 
@@ -512,6 +716,8 @@ const LandingPage = () => {
         </div>
       </section>
 
+      <div style={{ borderTop: "1px solid var(--border)", width: "100%" }} />
+
       {/* ── How it works ─────────────────────────────── */}
       <section
         id="how"
@@ -555,31 +761,42 @@ const LandingPage = () => {
               icon: Lock,
             },
           ].map((step, i) => (
-            <FadeInSection key={i} delay={i * 0.15}>
-              <div style={styles.step}>
+            <FadeInSection key={i} delay={i * 0.15} style={{ height: "100%" }}>
+              <motion.div 
+                style={{ ...styles.step, height: "100%" }}
+                whileHover={{
+                  y: -8,
+                  scale: 1.02,
+                  borderColor: "var(--border-bright)",
+                  boxShadow: "0 16px 36px rgba(0,0,0,0.6)"
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 22
+                }}
+              >
                 <div style={styles.stepNum}>{step.n}</div>
                 <div style={styles.stepIcon}>
                   <step.icon size={20} color="var(--accent-cyan)" />
                 </div>
                 <h3 style={styles.stepTitle}>{step.title}</h3>
                 <p style={styles.stepDesc}>{step.desc}</p>
-              </div>
+              </motion.div>
             </FadeInSection>
           ))}
         </div>
       </section>
 
+      <div style={{ borderTop: "1px solid var(--border)", width: "100%" }} />
+
       {/* ── CTA ──────────────────────────────────────── */}
       <FadeInSection>
         <section className="cta-section" style={styles.cta}>
-          <div style={styles.ctaGlow} />
           <span className="badge badge-cyan" style={{ marginBottom: 20 }}>
             <Zap size={10} /> Start Free
           </span>
           <h2 style={styles.ctaTitle}>Ready to collaborate?</h2>
-          <p style={styles.ctaSub}>
-            Create your first room in seconds. No credit card. No setup.
-          </p>
           <button
             className="btn btn-primary"
             onClick={() => navigate("/register")}
@@ -591,29 +808,10 @@ const LandingPage = () => {
       </FadeInSection>
 
       {/* ── Footer ───────────────────────────────────── */}
-      <footer className="footer-inner" style={styles.footer}>
-        <div style={styles.footerInner}>
-          <div
-            style={styles.logoLink}
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            role="button"
-            tabIndex={0}
-          >
-            <Code2 size={16} color="var(--accent-cyan)" />
-            <span style={{ ...styles.logoText, fontSize: "14px" }}>
-              CodeCollab
-            </span>
-          </div>
-          <p
-            style={{
-              color: "var(--text-muted)",
-              fontSize: "13px",
-              fontFamily: "var(--font-mono)",
-            }}
-          >
-            Built with ♥ for developers
-          </p>
-        </div>
+      <footer style={styles.footer}>
+        <p style={styles.footerCopyright}>
+          © {new Date().getFullYear()} CodeCollab. All rights reserved.
+        </p>
       </footer>
     </div>
   );
@@ -631,14 +829,13 @@ const styles = {
     left: 0,
     right: 0,
     zIndex: 100,
-    background: "rgba(8, 12, 16, 0.85)",
+    background: "rgba(0, 0, 0, 0.85)",
     backdropFilter: "blur(20px)",
     borderBottom: "1px solid var(--border)",
   },
   navInner: {
-    maxWidth: 1200,
-    margin: "0 auto",
-    padding: "0 24px",
+    width: "100%",
+    padding: "0 40px",
     height: 64,
     display: "flex",
     alignItems: "center",
@@ -662,7 +859,22 @@ const styles = {
     textDecoration: "none",
     letterSpacing: "0.01em",
   },
-  navActions: { display: "flex", gap: 10 },
+  navActions: { display: "flex", gap: 10, alignItems: "center" },
+  themeToggleBtn: {
+    background: "transparent",
+    border: "1px solid var(--border-bright)",
+    borderRadius: "50%",
+    width: 34,
+    height: 34,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    color: "var(--text-primary)",
+    transition: "all 0.2s ease",
+    padding: 0,
+    marginRight: 6,
+  },
 
   hero: {
     minHeight: "100vh",
@@ -684,7 +896,7 @@ const styles = {
     height: 500,
     borderRadius: "50%",
     background:
-      "radial-gradient(circle, rgba(0,212,255,0.06) 0%, transparent 70%)",
+      "radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)",
     pointerEvents: "none",
     zIndex: 0,
   },
@@ -709,7 +921,7 @@ const styles = {
   },
   heroAccent: {
     background:
-      "linear-gradient(135deg, var(--accent-cyan), var(--accent-green))",
+      "linear-gradient(135deg, #ffffff 0%, #999999 100%)",
     WebkitBackgroundClip: "text",
     WebkitTextFillColor: "transparent",
   },
@@ -739,7 +951,7 @@ const styles = {
     border: "1px solid var(--border)",
     borderRadius: "var(--radius-md)",
     overflow: "hidden",
-    boxShadow: "0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,212,255,0.1)",
+    boxShadow: "0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)",
   },
   codeHeader: {
     display: "flex",
@@ -749,6 +961,7 @@ const styles = {
     background: "var(--bg-elevated)",
     borderBottom: "1px solid var(--border)",
   },
+
   dots: { display: "flex", gap: 6 },
   dot: { width: 12, height: 12, borderRadius: "50%" },
   codeFileName: {
@@ -897,20 +1110,32 @@ const styles = {
     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
     gap: 32,
   },
-  step: { textAlign: "center", padding: "8px" },
+  step: {
+    background: "var(--bg-card)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius-md)",
+    padding: "32px 24px",
+    textAlign: "center",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    transition: "border-color 0.3s ease, box-shadow 0.3s ease",
+  },
   stepNum: {
     fontFamily: "var(--font-mono)",
-    fontSize: "13px",
+    fontSize: "16px",
+    fontWeight: 700,
     color: "var(--accent-cyan)",
     marginBottom: 16,
-    opacity: 0.7,
+    letterSpacing: "0.05em",
+    opacity: 0.95,
   },
   stepIcon: {
     width: 56,
     height: 56,
     borderRadius: "50%",
-    background: "rgba(0,212,255,0.08)",
-    border: "1px solid rgba(0,212,255,0.15)",
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.15)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -930,7 +1155,12 @@ const styles = {
 
   cta: {
     textAlign: "center",
-    padding: "100px 24px",
+    padding: "80px 48px",
+    background: "var(--bg-secondary)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius-lg)",
+    maxWidth: 900,
+    margin: "80px auto",
     position: "relative",
     overflow: "hidden",
     display: "flex",
@@ -946,7 +1176,7 @@ const styles = {
     height: 300,
     borderRadius: "50%",
     background:
-      "radial-gradient(ellipse, rgba(0,212,255,0.08) 0%, transparent 70%)",
+      "radial-gradient(ellipse, rgba(255,255,255,0.08) 0%, transparent 70%)",
     pointerEvents: "none",
   },
   ctaTitle: {
@@ -965,14 +1195,17 @@ const styles = {
 
   footer: {
     borderTop: "1px solid var(--border)",
-    padding: "24px",
-  },
-  footerInner: {
-    maxWidth: 1200,
-    margin: "0 auto",
+    background: "var(--bg-primary)",
+    padding: "32px 24px",
     display: "flex",
+    justifyContent: "center",
     alignItems: "center",
-    justifyContent: "space-between",
+    width: "100%",
+  },
+  footerCopyright: {
+    fontSize: "13px",
+    color: "var(--text-muted)",
+    textAlign: "center",
   },
 };
 

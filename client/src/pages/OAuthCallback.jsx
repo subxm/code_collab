@@ -1,6 +1,9 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
+import axios from "axios";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const OAuthCallback = () => {
   const [searchParams] = useSearchParams();
@@ -8,6 +11,8 @@ const OAuthCallback = () => {
 
   useEffect(() => {
     const token = searchParams.get("token");
+    const code = searchParams.get("code");
+
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
@@ -24,6 +29,28 @@ const OAuthCallback = () => {
         console.error("OAuth callback error:", err);
         navigate("/login");
       }
+    } else if (code) {
+      const exchangeCode = async () => {
+        try {
+          const res = await axios.post(`${API_URL}/api/auth/google/exchange`, {
+            code,
+            redirectUri: window.location.origin + "/oauth-callback",
+          });
+          const userToken = res.data.token;
+          const payload = JSON.parse(atob(userToken.split(".")[1]));
+          const user = {
+            id: payload.userId,
+            username: payload.username,
+          };
+          localStorage.setItem("user", JSON.stringify(user));
+          localStorage.setItem("token", userToken);
+          window.location.href = "/dashboard";
+        } catch (err) {
+          console.error("OAuth exchange error:", err);
+          navigate("/login");
+        }
+      };
+      exchangeCode();
     } else {
       navigate("/login");
     }

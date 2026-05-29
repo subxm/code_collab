@@ -1,11 +1,11 @@
 /* ── CSS Variables ─────────────────────────────────────── */
 :root {
-  --bg-primary: #080c10;
-  --bg-secondary: #0d1117;
-  --bg-card: #111820;
-  --bg-elevated: #161e28;
+  --bg-primary: #141414;
+  --bg-secondary: #1a1a1a;
+  --bg-card: #202020;
+  --bg-elevated: #262626;
 
-  --accent-cyan: #00d4ff;
+  --accent-cyan: #ffffff;
   --accent-green: #00ff9d;
   --accent-purple: #8b5cf6;
 
@@ -13,8 +13,8 @@
   --text-secondary: #8b949e;
   --text-muted: #484f58;
 
-  --border: #21262d;
-  --border-bright: #30363d;
+  --border: #242424;
+  --border-bright: #363636;
 
   --font-display: 'Outfit', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
@@ -24,7 +24,7 @@
   --radius-md: 12px;
   --radius-lg: 20px;
 
-  --shadow-glow-cyan: 0 0 30px rgba(0, 212, 255, 0.15);
+  --shadow-glow-cyan: 0 0 30px rgba(255, 255, 255, 0.15);
   --shadow-glow-green: 0 0 30px rgba(0, 255, 157, 0.15);
   --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
@@ -187,12 +187,29 @@ a {
   text-decoration: none;
 }
 
-/* Nav link hover state */
-.nav-link:hover {
-  color: var(--accent-cyan) !important;
-  text-decoration: underline !important;
-  text-underline-offset: 6px;
-  text-decoration-thickness: 2px;
+/* Nav link hover state with underline sliding animation */
+.nav-link {
+  position: relative;
+  text-decoration: none !important;
+  transition: color 0.2s ease;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  transform: scaleX(0);
+  height: 2px;
+  bottom: -6px;
+  left: 0;
+  background-color: var(--accent-cyan);
+  transform-origin: bottom right;
+  transition: transform 0.25s ease-out;
+}
+
+.nav-link:hover::after {
+  transform: scaleX(1);
+  transform-origin: bottom left;
 }
 
 a:hover {
@@ -206,7 +223,7 @@ a:hover {
   justify-content: center;
   gap: 8px;
   padding: 12px 24px;
-  border-radius: var(--radius-sm);
+  border-radius: 30px;
   font-family: var(--font-body);
   font-size: 14px;
   font-weight: var(--font-semibold);
@@ -224,7 +241,7 @@ a:hover {
 }
 
 .btn-primary:hover {
-  background: #33dcff;
+  background: #e5e5e5;
   transform: translateY(-1px);
   box-shadow: var(--shadow-glow-cyan);
 }
@@ -242,13 +259,13 @@ a:hover {
 }
 
 .btn-ghost {
-  background: rgba(0, 212, 255, 0.08);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--accent-cyan);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .btn-ghost:hover {
-  background: rgba(0, 212, 255, 0.15);
+  background: rgba(255, 255, 255, 0.15);
   box-shadow: var(--shadow-glow-cyan);
 }
 
@@ -290,7 +307,7 @@ a:hover {
 
 .input:focus {
   border-color: var(--accent-cyan);
-  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
 }
 
 .input::placeholder {
@@ -349,11 +366,11 @@ a:hover {
 
   0%,
   100% {
-    box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
   }
 
   50% {
-    box-shadow: 0 0 40px rgba(0, 212, 255, 0.4);
+    box-shadow: 0 0 40px rgba(255, 255, 255, 0.4);
   }
 }
 
@@ -419,10 +436,7 @@ a:hover {
 
 /* ── Grid background pattern ────────────────────────────── */
 .grid-bg {
-  background-image:
-    linear-gradient(rgba(0, 212, 255, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 212, 255, 0.08) 1px, transparent 1px);
-  background-size: 40px 40px;
+  /* background grid lines removed */
 }
 
 /* ── Badge ──────────────────────────────────────────────── */
@@ -440,9 +454,9 @@ a:hover {
 }
 
 .badge-cyan {
-  background: rgba(0, 212, 255, 0.1);
+  background: rgba(255, 255, 255, 0.1);
   color: var(--accent-cyan);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .badge-green {
@@ -596,3 +610,155 @@ a:hover {
     text-align: center;
   }
 }
+
+/* ── Footer Redesign ─────────────────────────────────────── */
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 48px;
+  max-width: 1200px;
+  margin: 0 auto 60px;
+  padding: 0 24px;
+}
+
+.footer-brand {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer-tagline {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 24px;
+  max-width: 320px;
+}
+
+.footer-socials {
+  display: flex;
+  gap: 16px;
+}
+
+.footer-social-link {
+  font-size: 14px;
+  color: var(--text-secondary);
+  transition: color 0.2s ease, transform 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.footer-social-link:hover {
+  color: var(--accent-cyan);
+  transform: translateY(-1px);
+}
+
+.footer-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer-heading {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+}
+
+.footer-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.footer-link {
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.2s ease, transform 0.2s ease;
+  display: inline-block;
+}
+
+.footer-link:hover {
+  color: var(--text-primary) !important;
+  transform: translateX(4px);
+  opacity: 1 !important;
+}
+
+.footer-bottom {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 0;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-copyright {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ── Tech Stack Ticker Enhancements ──────────────────────── */
+.ticker-container {
+  position: relative;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  overflow: hidden;
+  padding: 32px 0;
+}
+
+.ticker-mask-left {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 150px;
+  background: linear-gradient(to right, var(--bg-secondary) 0%, transparent 100%);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.ticker-mask-right {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 150px;
+  background: linear-gradient(to left, var(--bg-secondary) 0%, transparent 100%);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.stats-track:hover {
+  animation-play-state: paused;
+}
+
+@media (max-width: 768px) {
+  .footer-grid {
+    grid-template-columns: 1fr !important;
+    gap: 36px !important;
+    text-align: center;
+  }
+  .footer-brand {
+    align-items: center;
+  }
+  .footer-socials {
+    justify-content: center;
+  }
+  .footer-link:hover {
+    transform: none; /* disable shift on mobile hover */
+  }
+  .footer-bottom {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+}

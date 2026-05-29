@@ -24,8 +24,8 @@ const RoomChatMessage = ({ msg, currentUser }) => {
       <div
         style={{
           ...styles.bubble,
-          background: isMe ? "rgba(0,212,255,0.12)" : "var(--bg-elevated)",
-          border: `1px solid ${isMe ? "rgba(0,212,255,0.25)" : "var(--border)"}`,
+          background: isMe ? "rgba(255,255,255,0.12)" : "var(--bg-elevated)",
+          border: `1px solid ${isMe ? "rgba(255,255,255,0.25)" : "var(--border)"}`,
           borderRadius: isMe ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
         }}
       >
@@ -61,8 +61,8 @@ const AIChatMessage = ({ msg }) => (
       style={{
         ...styles.bubble,
         background:
-          msg.role === "user" ? "rgba(0,212,255,0.12)" : "var(--bg-elevated)",
-        border: `1px solid ${msg.role === "user" ? "rgba(0,212,255,0.25)" : "var(--border)"}`,
+          msg.role === "user" ? "rgba(255,255,255,0.12)" : "var(--bg-elevated)",
+        border: `1px solid ${msg.role === "user" ? "rgba(255,255,255,0.25)" : "var(--border)"}`,
         borderRadius:
           msg.role === "user" ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
       }}

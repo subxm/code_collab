@@ -1,9 +1,9 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import Dashboard from "./pages/Dashboard";
 import EditorRoom from "./pages/EditorRoom";
 import OAuthCallback from "./pages/OAuthCallback";
@@ -20,7 +20,6 @@ const AppRoutes = () => (
     <Route path="/" element={<LandingPage />} />
     <Route path="/login" element={<LoginPage />} />
     <Route path="/register" element={<RegisterPage />} />
-    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
     <Route path="/oauth-callback" element={<OAuthCallback />} />
     <Route
       path="/dashboard"
@@ -42,12 +41,13 @@ const AppRoutes = () => (
 );
 
 const App = () => (
-  <AuthProvider>
-    <div className="noise">
-      <div className="glow-line" />
-      <AppRoutes />
-    </div>
-  </AuthProvider>
+  <ThemeProvider>
+    <AuthProvider>
+      <div className="noise">
+        <AppRoutes />
+      </div>
+    </AuthProvider>
+  </ThemeProvider>
 );
 
 export default App;

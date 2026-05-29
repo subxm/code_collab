@@ -14,8 +14,10 @@ import toast from 'react-hot-toast'
 import {
   Code2, Play, Users, ChevronDown,
   Copy, Check, Brain, Terminal,
-  ArrowLeft, Wifi, WifiOff, Save
+  ArrowLeft, Wifi, WifiOff, Save, Sun, Moon
 } from 'lucide-react'
+import { useTheme } from '../context/ThemeContext'
+import Logo from '../components/Logo'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
@@ -44,6 +46,7 @@ const EditorRoom = () => {
   const { roomId }        = useParams()
   const navigate          = useNavigate()
   const { user, token }   = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const editorRef         = useRef(null)
 
   const [room,         setRoom]         = useState(null)
@@ -279,7 +282,7 @@ const EditorRoom = () => {
 
           <div style={styles.toolbarDivider} />
 
-          <Code2 size={16} color="var(--accent-cyan)" />
+          <Logo size={18} style={{ marginRight: 4 }} />
           <span style={styles.roomName}>{room.name}</span>
 
           {/* Connection status */}
@@ -327,7 +330,7 @@ const EditorRoom = () => {
                             : "var(--text-secondary)",
                         background:
                           lang === language
-                            ? "rgba(0,212,255,0.08)"
+                            ? "rgba(255,255,255,0.08)"
                             : "transparent",
                       }}
                     >
@@ -464,7 +467,7 @@ const EditorRoom = () => {
             <Editor
               height="100%"
               language={language === "cpp" ? "cpp" : language}
-              theme="vs-dark"
+              theme={theme === "light" ? "light" : "vs-dark"}
               onMount={handleEditorMount}
               options={editorOptions}
             />
@@ -573,6 +576,20 @@ const styles = {
     display: 'flex', alignItems: 'center',
     justifyContent: 'center',
     transition: 'background 0.15s',
+  },
+  themeToggleBtn: {
+    background: "transparent",
+    border: "1px solid var(--border-bright)",
+    borderRadius: "50%",
+    width: 28,
+    height: 28,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    color: "var(--text-secondary)",
+    transition: "all 0.2s ease",
+    padding: 0,
   },
 
   langDropWrap: { position: 'relative' },

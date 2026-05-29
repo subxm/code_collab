@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Code2, Plus, LogOut, Users, Clock,
-  ArrowRight, X, Hash, Loader2, Globe
+  ArrowRight, X, Hash, Loader2, Globe, Sun, Moon
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useTheme } from '../context/ThemeContext'
+import Logo from '../components/Logo'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
@@ -66,7 +68,7 @@ const RoomCard = ({ room, onClick, index }) => {
         <span style={{
           ...styles.roleBadge,
           background: room.myRole === 'owner'
-            ? 'rgba(0,255,157,0.1)' : 'rgba(0,212,255,0.1)',
+            ? 'rgba(0,255,157,0.1)' : 'rgba(255,255,255,0.1)',
           color: room.myRole === 'owner'
             ? 'var(--accent-green)' : 'var(--accent-cyan)',
         }}>
@@ -295,6 +297,7 @@ const JoinRoomModal = ({ onClose, token, navigate }) => {
 const Dashboard = () => {
   const navigate        = useNavigate()
   const { user, token, logout } = useAuth()
+  const { theme, toggleTheme } = useTheme()
 
   const [rooms,        setRooms]        = useState([])
   const [loading,      setLoading]      = useState(true)
@@ -342,7 +345,7 @@ const Dashboard = () => {
       >
         <div style={styles.navInner}>
           <div style={styles.logo} onClick={() => navigate('/')} >
-            <Code2 size={20} color="var(--accent-cyan)" />
+            <Logo size={22} style={{ marginRight: 6 }} />
             <span style={styles.logoText}>CodeCollab</span>
           </div>
           <div style={styles.navRight}>
@@ -355,7 +358,7 @@ const Dashboard = () => {
             <button
               className="btn btn-secondary"
               onClick={handleLogout}
-              style={{ padding: '7px 14px', fontSize: '13px', gap: 6 }}
+              style={{ padding: '7px 14px', fontSize: '13px', gap: 6, borderRadius: '24px', fontWeight: 600 }}
             >
               <LogOut size={14} /> Logout
             </button>
@@ -507,13 +510,13 @@ const styles = {
   },
   nav: {
     position: 'sticky', top: 0, zIndex: 50,
-    background: 'rgba(8,12,16,0.9)',
+    background: 'rgba(0,0,0,0.9)',
     backdropFilter: 'blur(20px)',
     borderBottom: '1px solid var(--border)',
   },
   navInner: {
-    maxWidth: 1200, margin: '0 auto',
-    padding: '0 24px', height: 60,
+    width: '100%',
+    padding: '0 40px', height: 60,
     display: 'flex', alignItems: 'center',
     justifyContent: 'space-between',
   },
@@ -526,6 +529,21 @@ const styles = {
     fontWeight: 700, fontSize: '18px',
   },
   navRight: { display: 'flex', alignItems: 'center', gap: 12 },
+  themeToggleBtn: {
+    background: "transparent",
+    border: "1px solid var(--border-bright)",
+    borderRadius: "50%",
+    width: 32,
+    height: 32,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    color: "var(--text-primary)",
+    transition: "all 0.2s ease",
+    padding: 0,
+    marginRight: 4,
+  },
   userPill: {
     display: 'flex', alignItems: 'center', gap: 8,
     background: 'var(--bg-elevated)',
