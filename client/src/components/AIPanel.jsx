@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Brain, MessageSquare, Send, Loader2, Users, X } from "lucide-react";
+import { renderAvatar } from "../pages/ProfilePage";
 
 const TABS = [
   { id: "chat", label: "Chat", icon: MessageSquare },
@@ -165,14 +166,18 @@ const AIPanel = ({
                 >
                   {users.map((u, i) => (
                     <div key={i} style={styles.memberItem}>
-                      <div
-                        style={{
-                          ...styles.memberAvatar,
-                          background: u.color || "var(--accent-cyan)",
-                        }}
-                      >
-                        {u.username?.[0]?.toUpperCase()}
-                      </div>
+                      {u.avatar ? (
+                        renderAvatar(u.avatar, u.username, 22)
+                      ) : (
+                        <div
+                          style={{
+                            ...styles.memberAvatar,
+                            background: u.color || "var(--accent-cyan)",
+                          }}
+                        >
+                          {u.username?.[0]?.toUpperCase()}
+                        </div>
+                      )}
                       <span style={styles.memberName}>
                         {u.username}
                         {u.username === currentUser && (

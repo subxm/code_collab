@@ -2,15 +2,27 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Code2, Plus, LogOut, Users, Clock, Play, Terminal,
-  ArrowRight, X, Hash, Loader2, Globe, Sparkles, User, MessageSquare
+  Code2, Plus, LogOut, Users, Clock,
+  ArrowRight, X, Hash, Globe, Sparkles, AlertCircle, Signal, Edit3, Trash2
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import Logo from '../components/Logo'
 import axios from 'axios'
 import toast from 'react-hot-toast'
+import { renderAvatar } from './ProfilePage'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
+const LANG_COLORS = {
+  javascript: '#ffa657',
+  python:     '#4ec9b0',
+  java:       '#ff7b72',
+  cpp:        '#79c0ff',
+  c:          '#79c0ff',
+  typescript: '#3178c6',
+  go:         '#00acd7',
+  rust:       '#ce422b',
+}
 
 const timeAgo = (dateStr) => {
   if (!dateStr) return "N/A";
@@ -32,17 +44,6 @@ const CreateRoomModal = ({ onClose, onCreated, token }) => {
   const languages = [
     'javascript', 'typescript', 'python', 'java', 'cpp', 'c', 'go', 'rust'
   ]
-
-  const LANG_COLORS = {
-    javascript: '#ffa657',
-    python:     '#4ec9b0',
-    java:       '#ff7b72',
-    cpp:        '#79c0ff',
-    c:          '#79c0ff',
-    typescript: '#3178c6',
-    go:         '#00acd7',
-    rust:       '#ce422b',
-  }
 
   const handleCreate = async () => {
     if (!form.name.trim()) { toast.error('Room name is required'); return }
@@ -103,7 +104,7 @@ const CreateRoomModal = ({ onClose, onCreated, token }) => {
             <label style={styles.label}>Language</label>
             <div style={styles.langGrid}>
               {languages.map(lang => {
-                const color = LANG_COLORS[lang] || '#00e5ff'
+                const color = LANG_COLORS[lang] || 'var(--accent-purple)'
                 const selected = form.language === lang
                 return (
                   <button
@@ -129,10 +130,11 @@ const CreateRoomModal = ({ onClose, onCreated, token }) => {
             Cancel
           </button>
           <button className="btn btn-primary" onClick={handleCreate} disabled={loading} style={{ flex: 2, justifyContent: 'center' }}>
-            {loading
-              ? <Loader2 size={16} style={{ animation: 'spin 0.7s linear infinite' }} />
-              : <><Plus size={16} /> Create Room</>
-            }
+            {loading ? (
+              <span style={{ fontSize: '13px' }}>Creating...</span>
+            ) : (
+              <><Plus size={16} /> Create Room</>
+            )}
           </button>
         </div>
       </motion.div>
@@ -210,10 +212,167 @@ const JoinRoomModal = ({ onClose, token, navigate }) => {
             Cancel
           </button>
           <button className="btn btn-primary" onClick={handleJoin} disabled={loading} style={{ flex: 2, justifyContent: 'center' }}>
-            {loading
-              ? <Loader2 size={16} style={{ animation: 'spin 0.7s linear infinite' }} />
-              : <><ArrowRight size={16} /> Join Room</>
-            }
+            {loading ? (
+              <span style={{ fontSize: '13px' }}>Joining...</span>
+            ) : (
+              <><ArrowRight size={16} /> Join Room</>
+            )}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+// ── Rename Room Modal ────────────────────────────────────
+const RenameRoomModal = ({ room, onClose, onRenamed, token }) => {
+  const [name, setName] = useState(room.name)
+  const [loading, setLoading] = useState(false)
+
+  const handleRename = async () => {
+    if (!name.trim()) { toast.error('Room name is required'); return }
+    try {
+      setLoading(true)
+      await axios.put(
+        `${API_URL}/api/rooms/${room.id}`,
+        { name: name.trim() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      toast.success('Room renamed!')
+      onRenamed(room.id, name.trim())
+      onClose()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to rename room')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <motion.div
+      style={styles.overlay}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        style={styles.modal}
+        initial={{ opacity: 0, scale: 0.92, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.92, y: 20 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={styles.modalHeader}>
+          <h2 style={styles.modalTitle}>Rename Room</h2>
+          <button onClick={onClose} style={styles.closeBtn}>
+            <X size={18} color="var(--text-secondary)" />
+          </button>
+        </div>
+
+        <div className="divider" style={{ margin: '16px 0' }} />
+
+        <div style={styles.modalBody}>
+          <div style={styles.field}>
+            <label style={styles.label}>New Room Name</label>
+            <input
+              className="input"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleRename()}
+              autoFocus
+            />
+          </div>
+        </div>
+
+        <div style={styles.modalFooter}>
+          <button className="btn btn-secondary" onClick={onClose} style={{ flex: 1 }}>
+            Cancel
+          </button>
+          <button className="btn btn-primary" onClick={handleRename} disabled={loading} style={{ flex: 2, justifyContent: 'center' }}>
+            {loading ? (
+              <span style={{ fontSize: '13px' }}>Renaming...</span>
+            ) : (
+              <>Save Changes</>
+            )}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+// ── Delete Room Modal ────────────────────────────────────
+const DeleteRoomModal = ({ room, onClose, onDeleted, token }) => {
+  const [loading, setLoading] = useState(false)
+
+  const handleDelete = async () => {
+    try {
+      setLoading(true)
+      await axios.delete(
+        `${API_URL}/api/rooms/${room.id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      toast.success('Room deleted successfully!')
+      onDeleted(room.id)
+      onClose()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete room')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <motion.div
+      style={styles.overlay}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        style={styles.modal}
+        initial={{ opacity: 0, scale: 0.92, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.92, y: 20 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={styles.modalHeader}>
+          <h2 style={styles.modalTitle} style={{ color: '#ff4d4d' }}>Delete Room</h2>
+          <button onClick={onClose} style={styles.closeBtn}>
+            <X size={18} color="var(--text-secondary)" />
+          </button>
+        </div>
+
+        <div className="divider" style={{ margin: '16px 0' }} />
+
+        <div style={styles.modalBody}>
+          <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--text-primary)' }}>
+            Are you sure you want to delete the room <strong style={{ color: '#ffffff' }}>{room.name}</strong>?
+          </p>
+          <p style={{ fontSize: '12px', lineHeight: 1.5, color: 'var(--text-muted)', marginTop: 8 }}>
+            This action is permanent and will delete all files and saved snapshots in this room.
+          </p>
+        </div>
+
+        <div style={styles.modalFooter}>
+          <button className="btn btn-secondary" onClick={onClose} style={{ flex: 1 }}>
+            Cancel
+          </button>
+          <button 
+            className="btn btn-primary" 
+            onClick={handleDelete} 
+            disabled={loading} 
+            style={{ flex: 1, background: '#ff4d4d', borderColor: '#ff4d4d', justifyContent: 'center' }}
+          >
+            {loading ? (
+              <span style={{ fontSize: '13px' }}>Deleting...</span>
+            ) : (
+              <>Delete</>
+            )}
           </button>
         </div>
       </motion.div>
@@ -226,36 +385,15 @@ const Dashboard = () => {
   const navigate = useNavigate()
   const { user, token, logout } = useAuth()
 
-  // Rooms & Activities State
+  // Rooms State
   const [rooms, setRooms]                 = useState([])
-  const [activities, setActivities]       = useState([])
   const [loading, setLoading]             = useState(true)
   const [showCreate, setShowCreate]       = useState(false)
   const [showJoin, setShowJoin]           = useState(false)
+  const [renameRoomObj, setRenameRoomObj] = useState(null)
+  const [deleteRoomObj, setDeleteRoomObj] = useState(null)
 
-  // Sandbox Scratchpad State
-  const [sandboxLang, setSandboxLang]     = useState('javascript')
-  const [sandboxCode, setSandboxCode]     = useState('console.log("Hello, CodeCollab!");')
-  const [sandboxOutput, setSandboxOutput] = useState(null)
-  const [sandboxRunning, setSandboxRunning] = useState(false)
-
-  const DEFAULT_CODES = {
-    javascript: 'console.log("Hello, CodeCollab!");',
-    typescript: 'let message: string = "Hello, TS!";\nconsole.log(message);',
-    python: 'print("Hello from Python!")',
-    java: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello from Java!");\n    }\n}',
-    cpp: '#include <iostream>\nusing namespace std;\nint main() {\n    cout << "Hello from C++!" << endl;\n    return 0;\n}',
-    c: '#include <stdio.h>\nint main() {\n    printf("Hello from C!\\n");\n    return 0;\n}',
-    go: 'package main\nimport "fmt"\nfunc main() {\n    fmt.Println("Hello from Go!")\n}',
-    rust: 'fn main() {\n    println!("Hello from Rust!");\n}',
-  }
-
-  const handleLanguageChange = (lang) => {
-    setSandboxLang(lang)
-    setSandboxCode(DEFAULT_CODES[lang] || '')
-  }
-
-  // Fetch Rooms & Activities
+  // Fetch Rooms
   const fetchData = async () => {
     try {
       setLoading(true)
@@ -263,11 +401,6 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       })
       setRooms(roomsRes.data.rooms)
-
-      const actRes = await axios.get(`${API_URL}/api/rooms/recent-activity`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      setActivities(actRes.data.activities)
     } catch (err) {
       console.error(err)
       toast.error('Failed to load dashboard data')
@@ -288,37 +421,29 @@ const Dashboard = () => {
     navigate(`/room/${room.id}`)
   }
 
+  const handleRoomRenamed = (roomId, newName) => {
+    setRooms(prev => prev.map(r => r.id === roomId ? { ...r, name: newName } : r))
+  }
+
+  const handleRoomDeleted = (roomId) => {
+    setRooms(prev => prev.filter(r => r.id !== roomId))
+  }
+
   const handleLogout = () => {
     logout()
     toast.success('Logged out')
     navigate('/')
   }
 
-  // Execute sandbox code
-  const runSandbox = async () => {
-    try {
-      setSandboxRunning(true)
-      setSandboxOutput(null)
-      const res = await axios.post(
-        `${API_URL}/api/execute/run`,
-        { code: sandboxCode, language: sandboxLang },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      const { stdout, stderr, compileOutput, status } = res.data.output
-      if (stderr) {
-        setSandboxOutput(`Error: ${stderr}`)
-      } else if (compileOutput) {
-        setSandboxOutput(`Compile Error:\n${compileOutput}`)
-      } else {
-        setSandboxOutput(stdout || `Executed successfully with status: ${status}`)
-      }
-      toast.success('Code executed!')
-    } catch (err) {
-      setSandboxOutput(err.response?.data?.message || 'Execution failed.')
-      toast.error('Failed to run code')
-    } finally {
-      setSandboxRunning(false)
-    }
+  if (loading) {
+    return (
+      <div style={styles.loadingWrap}>
+        <div className="spinner-container">
+          <div className="spinner-ring" />
+          <h2 style={styles.stillLoaderText}>Loading Dashboard...</h2>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -336,11 +461,8 @@ const Dashboard = () => {
             <span style={styles.logoText}>CodeCollab</span>
           </div>
           <div style={styles.navRight}>
-            {/* Link to Profile Page */}
             <Link to="/profile" style={styles.profileLink} title="My Profile">
-              <div style={styles.userAvatar}>
-                {user?.username?.[0]?.toUpperCase()}
-              </div>
+              {renderAvatar(user?.avatar, user?.username, 26)}
               <span style={styles.userName}>{user?.username}</span>
             </Link>
             <button
@@ -391,180 +513,105 @@ const Dashboard = () => {
           </div>
         </motion.div>
 
-        {/* Split grid */}
-        <div className="dashboard-grid">
-          
-          {/* Left Column: Activity Feed & Stats */}
-          <div style={styles.leftCol}>
-            
-            {/* Quick Stats Panel */}
-            <motion.div
-              style={styles.statsPanel}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              <div style={styles.statBox}>
-                <span style={styles.statBoxValue}>{rooms.length}</span>
-                <span style={styles.statBoxLabel}>Total Rooms</span>
-              </div>
-              <div style={styles.statDivider} />
-              <div style={styles.statBox}>
-                <span style={styles.statBoxValue}>
-                  {rooms.filter(r => r.myRole === 'owner').length}
-                </span>
-                <span style={styles.statBoxLabel}>Rooms Owned</span>
-              </div>
-              <div style={styles.statDivider} />
-              <div style={styles.statBox}>
-                <span style={styles.statBoxValue}>
-                  {[...new Set(rooms.map(r => r.language))].length}
-                </span>
-                <span style={styles.statBoxLabel}>Languages</span>
-              </div>
-            </motion.div>
+        {/* Rooms Grid */}
+        <div style={{ marginTop: 24 }}>
+          <div style={styles.sectionHeader}>
+            <h2 style={styles.sectionTitle}>My Collaborative Rooms</h2>
+          </div>
 
-            {/* AI Insights Card */}
-            <motion.div
-              style={styles.aiGlowCard}
-              whileHover={{ y: -2 }}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25 }}
-            >
-              <div style={styles.aiCardHeader}>
-                <Sparkles size={16} color="#00ff9d" />
-                <h3 style={styles.aiCardTitle}>AI Code Reviewer</h3>
-              </div>
-              <p style={styles.aiCardText}>
-                Need an extra set of eyes? Invoke AI inside any active room to get automated reviews, complexity reports, and one-click bug fixes.
-              </p>
-            </motion.div>
-
-            {/* Live Activity Timeline */}
-            <div style={styles.sectionHeader}>
-              <h2 style={styles.sectionTitle}>Recent Activity</h2>
+          {rooms.length === 0 ? (
+            <div style={styles.emptyFeed}>
+              <Code2 size={24} color="var(--text-secondary)" style={{ marginBottom: 8 }} />
+              <p style={styles.emptyFeedText}>You don't have any rooms yet. Create a new room above to start collaborating!</p>
             </div>
-
-            {loading ? (
-              <div style={styles.loadingFeed}>
-                <Loader2 size={24} style={{ animation: 'spin 0.7s linear infinite' }} color="var(--text-secondary)" />
-                <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Loading activities…</span>
-              </div>
-            ) : activities.length === 0 ? (
-              <div style={styles.emptyFeed}>
-                <Clock size={20} color="var(--text-muted)" />
-                <p style={styles.emptyFeedText}>No recent activity yet. Collaborations and files will log here.</p>
-              </div>
-            ) : (
-              <div style={styles.timeline}>
-                {activities.map((act, i) => (
+          ) : (
+            <div style={styles.roomsGrid}>
+              {rooms.map((room, i) => {
+                const color = LANG_COLORS[room.language] || 'var(--accent-purple)'
+                return (
                   <motion.div
-                    key={act.id}
-                    style={styles.timelineItem}
-                    initial={{ opacity: 0, x: -12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
+                    key={room.id}
+                    style={styles.roomCard}
+                    whileHover={{ y: -4, borderColor: 'var(--border-bright)', boxShadow: '0 8px 30px rgba(0,0,0,0.4)' }}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.04 }}
                   >
-                    <div style={styles.timelineDot} />
-                    <div style={styles.timelineContent}>
-                      <div style={styles.timelineHeader}>
-                        <span style={styles.timelineTitle}>{act.title}</span>
-                        <span style={styles.timelineTime}>{timeAgo(act.timestamp)}</span>
+                    <div style={styles.roomCardHeader}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ ...styles.langDot, background: color }} />
+                        <h4 style={styles.roomCardName}>{room.name}</h4>
                       </div>
-                      <p style={styles.timelineDetail}>{act.detail}</p>
+                      <span style={{ 
+                        fontSize: '10px', 
+                        fontWeight: 700, 
+                        textTransform: 'uppercase', 
+                        padding: '3px 8px', 
+                        borderRadius: '12px',
+                        background: room.myRole === 'owner' ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.05)',
+                        color: room.myRole === 'owner' ? 'var(--accent-purple)' : 'var(--text-secondary)',
+                        border: room.myRole === 'owner' ? '1px solid rgba(139,92,246,0.25)' : '1px solid rgba(255,255,255,0.08)'
+                      }}>
+                        {room.myRole === 'owner' ? 'Owner' : 'Editor'}
+                      </span>
+                    </div>
+                    
+                    <div style={styles.roomCardMeta}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        {room.language.toUpperCase()}
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        Updated {timeAgo(room.updatedAt)}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                      <div>
+                        {room.myRole === 'owner' && (
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRenameRoomObj(room);
+                              }}
+                              style={styles.cardActionBtn}
+                              className="card-action-btn"
+                              title="Rename Room"
+                            >
+                              <Edit3 size={13} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteRoomObj(room);
+                              }}
+                              style={styles.cardActionBtnDelete}
+                              className="card-action-btn-delete"
+                              title="Delete Room"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => navigate(`/room/${room.id}`)}
+                        style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px', fontWeight: 600 }}
+                      >
+                        Enter Room
+                      </button>
                     </div>
                   </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Right Column: Code Scratchpad compiler sandbox */}
-          <div style={styles.rightCol}>
-            
-            <div style={styles.sectionHeader}>
-              <h2 style={styles.sectionTitle}>Sandbox Scratchpad</h2>
+                )
+              })}
             </div>
-
-            <motion.div
-              style={styles.sandboxCard}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              {/* Sandbox selector bar */}
-              <div style={styles.sandboxBar}>
-                <span style={styles.sandboxTitle}>
-                  <Terminal size={14} color="#00ff9d" />
-                  Quick Playground
-                </span>
-                
-                <select
-                  value={sandboxLang}
-                  onChange={(e) => handleLanguageChange(e.target.value)}
-                  style={styles.langSelect}
-                >
-                  <option value="javascript">JavaScript</option>
-                  <option value="typescript">TypeScript</option>
-                  <option value="python">Python 3</option>
-                  <option value="java">Java</option>
-                  <option value="cpp">C++</option>
-                  <option value="c">C</option>
-                  <option value="go">Go</option>
-                  <option value="rust">Rust</option>
-                </select>
-              </div>
-
-              {/* Code TextArea */}
-              <div style={styles.textareaWrap}>
-                <textarea
-                  style={styles.codeTextarea}
-                  value={sandboxCode}
-                  onChange={(e) => setSandboxCode(e.target.value)}
-                  placeholder="// Type some code to execute..."
-                />
-              </div>
-
-              {/* Action Bar */}
-              <div style={styles.sandboxActions}>
-                <button
-                  className="btn btn-primary"
-                  onClick={runSandbox}
-                  disabled={sandboxRunning}
-                  style={{ gap: 8, padding: '8px 16px', fontSize: '13px' }}
-                >
-                  {sandboxRunning ? (
-                    <Loader2 size={14} style={{ animation: 'spin 0.7s linear infinite' }} />
-                  ) : (
-                    <Play size={12} fill="currentColor" />
-                  )}
-                  Run Script
-                </button>
-              </div>
-
-              {/* Output Console Mockup */}
-              {sandboxOutput && (
-                <div style={styles.consoleMockup}>
-                  <div style={styles.consoleHeader}>
-                    <span style={styles.consoleDot} />
-                    <span style={styles.consoleDot} />
-                    <span style={styles.consoleDot} />
-                    <span style={styles.consoleTitle}>Console Output</span>
-                  </div>
-                  <pre style={styles.consoleText}>
-                    {sandboxOutput}
-                  </pre>
-                </div>
-              )}
-            </motion.div>
-            
-          </div>
+          )}
         </div>
 
       </main>
 
-      {/* ── Modals ─────────────────────────────────── */}
+      {/* Modals */}
       <AnimatePresence>
         {showCreate && (
           <CreateRoomModal
@@ -580,6 +627,22 @@ const Dashboard = () => {
             navigate={navigate}
           />
         )}
+        {renameRoomObj && (
+          <RenameRoomModal
+            room={renameRoomObj}
+            onClose={() => setRenameRoomObj(null)}
+            onRenamed={handleRoomRenamed}
+            token={token}
+          />
+        )}
+        {deleteRoomObj && (
+          <DeleteRoomModal
+            room={deleteRoomObj}
+            onClose={() => setDeleteRoomObj(null)}
+            onDeleted={handleRoomDeleted}
+            token={token}
+          />
+        )}
       </AnimatePresence>
     </div>
   )
@@ -587,6 +650,232 @@ const Dashboard = () => {
 
 // ── Styles ───────────────────────────────────────────────
 const styles = {
+  lobbyChatCard: {
+    background: 'var(--bg-card)',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-lg)',
+    padding: '20px',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 16,
+    marginBottom: 12,
+  },
+  lobbyChatHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottom: '1px solid var(--border)',
+    paddingBottom: 12,
+  },
+  lobbyChatTitle: {
+    fontSize: '15px',
+    fontWeight: 700,
+    color: 'var(--text-primary)',
+  },
+  onlineBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    background: 'rgba(255, 255, 255, 0.03)',
+    padding: '4px 10px',
+    borderRadius: 20,
+    border: '1px solid var(--border)',
+  },
+  onlinePulsingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: '50%',
+    background: 'var(--accent-purple)',
+    boxShadow: '0 0 8px var(--accent-purple)',
+    display: 'inline-block',
+  },
+  chatMessageLog: {
+    height: 250,
+    overflowY: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+    paddingRight: 6,
+    background: 'var(--bg-primary)',
+    borderRadius: 'var(--radius-md)',
+    padding: '12px',
+    border: '1px solid var(--border)',
+  },
+  emptyChat: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    textAlign: 'center',
+  },
+  emptyChatText: {
+    fontSize: '12px',
+    color: 'var(--text-secondary)',
+    maxWidth: 220,
+  },
+  chatMessageRow: {
+    fontSize: '13px',
+    lineHeight: '1.4',
+    textAlign: 'left',
+  },
+  chatMessageText: {
+    color: 'var(--text-primary)',
+  },
+  chatInviteCard: {
+    background: 'rgba(139, 92, 246, 0.05)',
+    border: '1px solid rgba(139, 92, 246, 0.15)',
+    borderRadius: '8px',
+    padding: '12px',
+    width: '100%',
+    boxShadow: '0 4px 15px rgba(139, 92, 246, 0.02)',
+    textAlign: 'left',
+  },
+  inviteAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: '50%',
+    background: 'var(--accent-purple)',
+    color: '#141414',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '13px',
+    fontWeight: 700,
+  },
+  chatInputWrapper: {
+    display: 'flex',
+    gap: 8,
+  },
+  chatInput: {
+    flex: 1,
+    background: 'var(--bg-secondary)',
+    border: '1px solid var(--border)',
+    color: 'var(--text-primary)',
+    borderRadius: '8px',
+    padding: '8px 12px',
+    fontSize: '13px',
+    outline: 'none',
+    transition: 'border-color 0.15s ease',
+  },
+  chatSendBtn: {
+    background: 'var(--accent-purple)',
+    border: 'none',
+    borderRadius: '8px',
+    width: 36,
+    height: 36,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'opacity 0.15s ease',
+  },
+  roomsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+    gap: 16,
+    marginTop: 12,
+  },
+  roomCard: {
+    background: 'var(--bg-card)',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-md)',
+    padding: '16px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+    transition: 'all 0.2s ease',
+    textAlign: 'left',
+  },
+  roomCardHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  roomCardName: {
+    fontSize: '14px',
+    fontWeight: 700,
+    color: 'var(--text-primary)',
+  },
+  roomCardMeta: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  roomCardFooter: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  roomShareBtn: {
+    background: 'none',
+    border: '1px solid var(--border)',
+    color: 'var(--text-secondary)',
+    borderRadius: '6px',
+    padding: '6px 12px',
+    fontSize: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+  },
+  cardActionBtn: {
+    background: 'rgba(255, 255, 255, 0.03)',
+    border: '1px solid var(--border)',
+    color: 'var(--text-secondary)',
+    borderRadius: '6px',
+    width: 28,
+    height: 28,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+  },
+  cardActionBtnDelete: {
+    background: 'rgba(255, 255, 255, 0.03)',
+    border: '1px solid var(--border)',
+    color: 'rgba(255, 77, 77, 0.7)',
+    borderRadius: '6px',
+    width: 28,
+    height: 28,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+  },
+  rosterCard: {
+    background: 'var(--bg-card)',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-md)',
+    padding: '16px',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+  },
+  rosterList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+  },
+  rosterItem: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rosterName: {
+    fontSize: '13px',
+    fontWeight: 600,
+    color: 'var(--text-primary)',
+  },
+  activePulsingIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: '50%',
+    background: 'var(--accent-purple)',
+    boxShadow: '0 0 8px var(--accent-purple)',
+  },
   page: {
     minHeight: '100vh',
     background: 'var(--bg-primary)',
@@ -623,7 +912,7 @@ const styles = {
   },
   userAvatar: {
     width: 26, height: 26, borderRadius: '50%',
-    background: 'linear-gradient(135deg, var(--accent-green) 0%, var(--accent-purple) 100%)',
+    background: 'linear-gradient(135deg, var(--accent-purple) 0%, #ffffff 100%)',
     color: 'var(--bg-primary)',
     display: 'flex', alignItems: 'center',
     justifyContent: 'center',
@@ -669,15 +958,15 @@ const styles = {
     fontFamily: 'var(--font-display)',
     fontSize: '24px', fontWeight: 800,
   },
-  statBoxLabel: { fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' },
+  statBoxLabel: { fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' },
   statDivider: { width: 1, height: 32, background: 'var(--border)' },
 
   aiGlowCard: {
-    background: 'linear-gradient(to bottom, #1d2b24, #141414)',
-    border: '1px solid rgba(0,255,157,0.12)',
+    background: 'linear-gradient(to bottom, #19142b, #141414)',
+    border: '1px solid rgba(139,92,246,0.15)',
     borderRadius: 'var(--radius-md)',
     padding: '20px',
-    boxShadow: '0 8px 30px rgba(0,255,157,0.02)',
+    boxShadow: '0 8px 30px rgba(139,92,246,0.02)',
   },
   aiCardHeader: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 },
   aiCardTitle: { fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' },
@@ -690,9 +979,6 @@ const styles = {
     color: 'var(--text-secondary)',
   },
 
-  loadingFeed: {
-    display: 'flex', alignItems: 'center', gap: 10, padding: '24px 0',
-  },
   emptyFeed: {
     background: 'var(--bg-card)', border: '1px solid var(--border)',
     borderRadius: 'var(--radius-md)', padding: '32px 16px',
@@ -709,59 +995,77 @@ const styles = {
   timelineItem: { position: 'relative' },
   timelineDot: {
     position: 'absolute', left: -22, top: 4, width: 10, height: 10,
-    borderRadius: '50%', background: '#00ff9d',
+    borderRadius: '50%', background: 'var(--accent-purple)',
     border: '2px solid var(--bg-primary)',
   },
-  timelineHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
+  timelineHeader: { display: 'flex', justifyContents: 'space-between', alignItems: 'center', marginBottom: 2 },
   timelineTitle: { fontSize: '13px', fontWeight: 700 },
-  timelineTime: { fontSize: '11px', color: 'var(--text-muted)' },
+  timelineTime: { fontSize: '11px', color: 'var(--text-secondary)' },
   timelineDetail: { fontSize: '12px', color: 'var(--text-secondary)' },
 
-  // Sandbox Scratchpad Styles
-  sandboxCard: {
+  // Lobby Card styles
+  lobbyCard: {
     background: 'var(--bg-card)', border: '1px solid var(--border)',
     borderRadius: 'var(--radius-lg)', padding: '20px',
     boxShadow: '0 12px 40px rgba(0,0,0,0.3)',
-    display: 'flex', flexDirection: 'column', gap: 14,
+    display: 'flex', flexDirection: 'column', gap: 16,
   },
-  sandboxBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  sandboxTitle: { display: 'flex', alignItems: 'center', gap: 8, fontSize: '13px', fontWeight: 700 },
-  langSelect: {
-    background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-    borderRadius: '6px', color: 'var(--text-primary)', fontSize: '12px',
-    padding: '4px 10px', cursor: 'pointer', outline: 'none',
+  lobbyTop: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  lobbyPill: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)',
+    borderRadius: '20px', padding: '6px 14px',
   },
-  textareaWrap: {
-    background: '#181818', border: '1px solid var(--border)',
-    borderRadius: 'var(--radius-sm)', padding: 12,
+  lobbyStatusText: { fontSize: '12px', fontWeight: 600, color: 'var(--accent-purple)' },
+  telemetrySection: { display: 'flex', flexDirection: 'column', gap: 10 },
+  telemetryTitle: {
+    fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)',
+    textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4
   },
-  codeTextarea: {
-    width: '100%', height: 160, background: 'transparent', border: 'none', outline: 'none',
-    color: '#00ff9d', fontFamily: 'var(--font-mono)', fontSize: '12px',
-    resize: 'none', lineHeight: 1.5,
+  telemetryRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' },
+  telemetryLabel: { color: 'var(--text-secondary)' },
+  telemetryValue: { fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-primary)' },
+
+  // Recent Rooms list styles
+  recentRoomsList: { display: 'flex', flexDirection: 'column', gap: 10 },
+  recentRoomItem: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    background: 'var(--bg-card)', border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-md)', padding: '14px 16px',
+    cursor: 'pointer', transition: 'all 0.2s ease',
   },
-  sandboxActions: { display: 'flex', justifyContent: 'flex-end' },
-  consoleMockup: {
-    background: '#0d0d0d', border: '1px solid var(--border)',
-    borderRadius: 'var(--radius-sm)', overflow: 'hidden',
+  recentRoomLeft: { display: 'flex', alignItems: 'center', gap: 12 },
+  langDot: { width: 8, height: 8, borderRadius: '50%' },
+  recentRoomText: { display: 'flex', flexDirection: 'column', gap: 2 },
+  recentRoomName: { fontSize: '13px', fontWeight: 700 },
+  recentRoomLang: { fontSize: '10px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' },
+
+  // Still Black Loader styles
+  loadingWrap: {
+    minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: '#050505',
   },
-  consoleHeader: {
-    background: '#141414', padding: '6px 12px',
-    display: 'flex', alignItems: 'center', gap: 6,
-    borderBottom: '1px solid var(--border)',
+  stillLoaderInner: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
   },
-  consoleDot: { width: 6, height: 6, borderRadius: '50%', background: 'var(--text-muted)' },
-  consoleTitle: { fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginLeft: 6 },
-  consoleText: {
-    padding: 12, margin: 0, color: '#f8f8f2', fontFamily: 'var(--font-mono)',
-    fontSize: '11px', whiteSpace: 'pre-wrap', maxHeight: 150, overflowY: 'auto',
+  stillLoaderText: {
+    fontSize: '15px',
+    fontWeight: 600,
+    color: 'var(--text-secondary)',
+    fontFamily: 'var(--font-display)',
   },
 
   // Modals Styles (Shared)
   overlay: {
     position: 'fixed', inset: 0, zIndex: 200,
-    background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)',
-    display: 'flex', alignItems: 'center', justifyContents: 'center',
+    background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(4px)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: 24,
   },
   modal: {
@@ -791,7 +1095,7 @@ const styles = {
     fontSize: '11px', fontWeight: 600, fontFamily: 'var(--font-mono)',
     transition: 'all 0.15s ease', textTransform: 'uppercase',
   },
-  hint: { fontSize: '12px', color: 'var(--text-muted)', marginTop: 4 },
+  hint: { fontSize: '12px', color: 'var(--text-secondary)', marginTop: 4 },
 }
 
 export default Dashboard

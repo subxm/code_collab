@@ -5,7 +5,7 @@ import { MonacoBinding } from "y-monaco";
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-const useCollaboration = (roomId, username, editorRef) => {
+const useCollaboration = (roomId, username, avatar, editorRef) => {
   const socketRef = useRef(null);
   const ydocRef = useRef(null);
   const bindingRef = useRef(null);
@@ -36,7 +36,7 @@ const useCollaboration = (roomId, username, editorRef) => {
       setIsConnected(true);
       console.log("✅ Connected:", socket.id);
       // Join room immediately on connect
-      socket.emit("join-room", { roomId, username });
+      socket.emit("join-room", { roomId, username, avatar });
     });
 
     socket.on("disconnect", () => {
@@ -47,7 +47,7 @@ const useCollaboration = (roomId, username, editorRef) => {
     socket.on("reconnect", () => {
       setIsConnected(true);
       // Rejoin room after reconnect
-      socket.emit("join-room", { roomId, username });
+      socket.emit("join-room", { roomId, username, avatar });
     });
 
     // Sync initial state
@@ -97,7 +97,7 @@ const useCollaboration = (roomId, username, editorRef) => {
       ydoc.destroy();
       socket.disconnect();
     };
-  }, [roomId, username]);
+  }, [roomId, username, avatar]);
 
   // Bind Yjs to Monaco editor
   const bindEditor = (editor) => {

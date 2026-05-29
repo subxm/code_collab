@@ -18,6 +18,7 @@ model User {
   rooms            RoomMember[]
   bio              String?    @default("Collaborative developer")
   tagline          String?    @default("Building things together")
+  avatar           String?    @default("")
 }
 
 model Room {

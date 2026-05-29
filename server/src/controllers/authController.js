@@ -44,7 +44,7 @@ const register = async (req, res) => {
     res.status(201).json({
       message: "Account created successfully",
       token,
-      user: { id: user.id, email: user.email, username: user.username },
+      user: { id: user.id, email: user.email, username: user.username, avatar: user.avatar || "" },
     });
   } catch (error) {
     console.error("Register error:", error);
@@ -85,7 +85,7 @@ const login = async (req, res) => {
     res.status(200).json({
       message: "Login successful",
       token,
-      user: { id: user.id, email: user.email, username: user.username },
+      user: { id: user.id, email: user.email, username: user.username, avatar: user.avatar || "" },
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -98,7 +98,7 @@ const getMe = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
-      select: { id: true, email: true, username: true, createdAt: true },
+      select: { id: true, email: true, username: true, createdAt: true, avatar: true },
     });
 
     res.status(200).json({ user });

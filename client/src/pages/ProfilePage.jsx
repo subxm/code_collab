@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User, Mail, Calendar, Edit3, Search, Clock, ArrowLeft,
-  Code2, Hash, ArrowRight, Check, Loader2, Sparkles, AlertCircle
+  Code2, Hash, ArrowRight, Check, Loader2, Sparkles, AlertCircle, Upload
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import Logo from "../components/Logo";
@@ -41,11 +41,95 @@ const timeAgo = (dateStr) => {
   return `${days}d ago`;
 };
 
+// Preset Avatars definition
+export const PRESET_AVATARS = [
+  { id: 'preset_1', name: 'Code Master', gradient: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', symbol: '</>' },
+  { id: 'preset_2', name: 'Sunset Brackets', gradient: 'linear-gradient(135deg, #f97316 0%, #c2410c 100%)', symbol: '{}' },
+  { id: 'preset_3', name: 'Cyber Zap', gradient: 'linear-gradient(135deg, #a855f7 0%, #6b21a8 100%)', symbol: '⚡' },
+  { id: 'preset_4', name: 'Coffee Coder', gradient: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)', symbol: '☕' },
+  { id: 'preset_5', name: 'Hacker Terminal', gradient: 'linear-gradient(135deg, #10b981 0%, #047857 100%)', symbol: '💻' },
+  { id: 'preset_6', name: 'AI Assistant', gradient: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)', symbol: '🤖' },
+];
+
+export const renderAvatar = (avatarData, username, size = 48) => {
+  if (avatarData && avatarData.startsWith('data:image')) {
+    return (
+      <img 
+        src={avatarData} 
+        alt={username} 
+        style={{ 
+          width: size, 
+          height: size, 
+          borderRadius: '50%', 
+          objectFit: 'cover',
+          border: '1px solid var(--border-bright)'
+        }} 
+      />
+    );
+  }
+
+  if (avatarData && avatarData.startsWith('preset_')) {
+    const preset = PRESET_AVATARS.find(p => p.id === avatarData) || PRESET_AVATARS[0];
+    return (
+      <div style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        background: preset.gradient,
+        color: '#ffffff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: size * 0.38,
+        fontWeight: 700,
+        fontFamily: 'var(--font-mono)',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+      }}>
+        {preset.symbol}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      width: size,
+      height: size,
+      borderRadius: '50%',
+      background: 'linear-gradient(135deg, var(--accent-purple) 0%, #ffffff 100%)',
+      color: 'var(--bg-primary)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: size * 0.45,
+      fontWeight: 700,
+    }}>
+      {username?.[0]?.toUpperCase()}
+    </div>
+  );
+};
+
 // Edit Profile Modal
 const EditProfileModal = ({ user, onClose, onUpdated, token }) => {
-  const [form, setForm]       = useState({ username: user.username, bio: user.bio || "", tagline: user.tagline || "" });
+  const [form, setForm]       = useState({ username: user.username, bio: user.bio || "", tagline: user.tagline || "", avatar: user.avatar || "" });
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // limit check: 800 KB
+    if (file.size > 800 * 1024) {
+      setError("Image size must be less than 800KB");
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setForm(p => ({ ...p, avatar: reader.result }));
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -118,6 +202,94 @@ const EditProfileModal = ({ user, onClose, onUpdated, token }) => {
               value={form.tagline}
               onChange={(e) => setForm((p) => ({ ...p, tagline: e.target.value }))}
             />
+          </div>
+
+          <div style={styles.field}>
+            <label style={styles.label}>Profile Avatar</label>
+            
+            {/* Preview of current selection */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
+              {renderAvatar(form.avatar, form.username, 56)}
+              <div>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  Avatar Preview
+                </span>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  Choose a preset below or upload a custom image
+                </p>
+              </div>
+            </div>
+
+            {/* Presets Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, marginBottom: 12 }}>
+              
+              {/* Fallback Initial Letter Preset */}
+              <div 
+                type="button"
+                onClick={() => setForm(p => ({ ...p, avatar: '' }))}
+                style={{
+                  ...styles.presetCell,
+                  border: !form.avatar ? '2px solid var(--accent-purple)' : '2px solid transparent',
+                  background: 'rgba(255,255,255,0.03)'
+                }}
+                title="Default Initials"
+              >
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)' }}>Ab</span>
+              </div>
+
+              {/* Mapping of 6 illustration gradients */}
+              {PRESET_AVATARS.map(p => (
+                <div 
+                  key={p.id}
+                  type="button"
+                  onClick={() => setForm(prev => ({ ...prev, avatar: p.id }))}
+                  style={{
+                    ...styles.presetCell,
+                    background: p.gradient,
+                    border: form.avatar === p.id ? '2px solid #ffffff' : '2px solid transparent',
+                    boxShadow: form.avatar === p.id ? '0 0 10px rgba(139,92,246,0.3)' : 'none'
+                  }}
+                  title={p.name}
+                >
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+                    {p.symbol}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Custom Upload Button */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <label 
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  color: 'var(--text-primary)',
+                  transition: 'background 0.2s'
+                }}
+              >
+                <Upload size={12} /> Upload Custom Image
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  style={{ display: 'none' }}
+                />
+              </label>
+              {form.avatar && form.avatar.startsWith('data:image') && (
+                <span style={{ fontSize: '11px', color: 'var(--accent-purple)', fontWeight: 600 }}>
+                  Custom Image Loaded
+                </span>
+              )}
+            </div>
           </div>
 
           <div style={styles.field}>
@@ -224,10 +396,10 @@ const ProfilePage = () => {
   if (loading) {
     return (
       <div style={styles.loadingWrap}>
-        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
-          <Loader2 size={36} color="var(--accent-green)" />
-        </motion.div>
-        <span style={{ color: "var(--text-secondary)", marginTop: 12 }}>Loading profile...</span>
+        <div className="spinner-container">
+          <div className="spinner-ring" />
+          <h2 style={styles.stillLoaderText}>Loading Profile...</h2>
+        </div>
       </div>
     );
   }
@@ -236,15 +408,11 @@ const ProfilePage = () => {
     <div style={styles.page}>
       {/* Navbar */}
       <nav style={styles.nav}>
-        <div style={styles.navInner}>
+        <div style={{ ...styles.navInner, justifyContent: 'flex-start' }}>
           <Link to="/dashboard" style={styles.backBtn}>
             <ArrowLeft size={16} />
             <span>Dashboard</span>
           </Link>
-          <div style={styles.logo}>
-            <Logo size={20} style={{ marginRight: 6 }} />
-            <span style={styles.logoText}>CodeCollab</span>
-          </div>
         </div>
       </nav>
 
@@ -258,7 +426,7 @@ const ProfilePage = () => {
         >
           <div style={styles.profileTop}>
             <div style={styles.avatarBig}>
-              {profileUser?.username?.[0]?.toUpperCase()}
+              {renderAvatar(profileUser?.avatar, profileUser?.username, 96)}
               <div style={styles.avatarRing} />
             </div>
 
@@ -322,9 +490,9 @@ const ProfilePage = () => {
                       onClick={() => setFilter(t)}
                       style={{
                         ...styles.tab,
-                        color: filter === t ? "var(--accent-green)" : "var(--text-secondary)",
-                        background: filter === t ? "rgba(0,255,157,0.08)" : "transparent",
-                        borderColor: filter === t ? "rgba(0,255,157,0.3)" : "transparent"
+                        color: filter === t ? "var(--accent-purple)" : "var(--text-secondary)",
+                        background: filter === t ? "rgba(139,92,246,0.08)" : "transparent",
+                        borderColor: filter === t ? "rgba(139,92,246,0.3)" : "transparent"
                       }}
                     >
                       {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -361,8 +529,8 @@ const ProfilePage = () => {
                         </span>
                         <span style={{
                           ...styles.roleBadge,
-                          background: room.myRole === 'owner' ? 'rgba(0,255,157,0.1)' : 'rgba(255,255,255,0.06)',
-                          color: room.myRole === 'owner' ? 'var(--accent-green)' : 'var(--text-secondary)',
+                          background: room.myRole === 'owner' ? 'rgba(139,92,246,0.1)' : 'rgba(255,255,255,0.06)',
+                          color: room.myRole === 'owner' ? 'var(--accent-purple)' : 'var(--text-secondary)',
                         }}>
                           {room.myRole}
                         </span>
@@ -505,14 +673,25 @@ const styles = {
   },
   avatarBig: {
     width: 96, height: 96, borderRadius: "50%",
-    background: "linear-gradient(135deg, var(--accent-green) 0%, var(--accent-purple) 100%)",
-    color: "var(--bg-primary)",
+    background: "var(--bg-elevated)",
+    border: "1px solid var(--border-bright)",
     display: "flex", alignItems: "center", justifyContent: "center",
-    fontSize: "42px", fontWeight: 800, position: "relative",
+    position: "relative",
   },
   avatarRing: {
     position: "absolute", inset: -4, borderRadius: "50%",
-    border: "2px solid rgba(0,255,157,0.3)",
+    border: "2px solid rgba(139,92,246,0.25)",
+  },
+  presetCell: {
+    width: 36,
+    height: 36,
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: 'center',
+    cursor: "pointer",
+    transition: "transform 0.15s ease",
+    outline: "none",
   },
   profileMeta: { flex: 1 },
   usernameRow: {
@@ -650,7 +829,14 @@ const styles = {
   
   loadingWrap: {
     minHeight: "100vh", display: "flex", flexDirection: "column",
-    alignItems: "center", justifyContent: "center", background: "var(--bg-primary)",
+    alignItems: "center", justifyContent: "center", background: "#050505",
+  },
+  stillLoaderInner: {
+    display: "flex", flexDirection: "column", alignItems: "center",
+  },
+  stillLoaderText: {
+    fontSize: "15px", fontWeight: 600, color: "var(--text-secondary)",
+    fontFamily: "var(--font-display)",
   },
   emptyState: {
     background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)",

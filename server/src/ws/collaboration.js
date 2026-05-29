@@ -38,7 +38,7 @@ const initCollaboration = (server) => {
     console.log(`🔌 Connected: ${socket.id}`);
 
     // ── Join Room ──────────────────────────────────
-    socket.on("join-room", async ({ roomId, username }) => {
+    socket.on("join-room", async ({ roomId, username, avatar }) => {
       try {
         socket.join(roomId);
 
@@ -61,7 +61,7 @@ const initCollaboration = (server) => {
         const color = getRandomColor();
         roomUsers
           .get(roomId)
-          .set(socket.id, { username, color, socketId: socket.id });
+          .set(socket.id, { username, color, socketId: socket.id, avatar });
 
         // Send current doc state to new user
         const ydoc = roomDocs.get(roomId);

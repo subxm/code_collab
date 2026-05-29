@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import Logo from '../components/Logo'
+import { renderAvatar } from './ProfilePage'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
@@ -62,7 +63,7 @@ const EditorRoom = () => {
   const {
     users, messages, isConnected,
     bindEditor, sendMessage, changeLanguage
-  } = useCollaboration(roomId, user?.username, editorRef)
+  } = useCollaboration(roomId, user?.username, user?.avatar, editorRef)
 
   const {
     output, isRunning, error: execError,
@@ -253,15 +254,10 @@ const EditorRoom = () => {
   if (!room) {
     return (
       <div style={styles.loading}>
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-        >
-          <Code2 size={28} color="var(--accent-cyan)" />
-        </motion.div>
-        <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-          Loading room…
-        </span>
+        <div className="spinner-container">
+          <div className="spinner-ring" />
+          <h2 style={styles.stillLoaderText}>Loading Room...</h2>
+        </div>
       </div>
     )
   }
@@ -352,13 +348,33 @@ const EditorRoom = () => {
                 key={i}
                 title={u.username}
                 style={{
-                  ...styles.userDot,
-                  background: u.color,
                   marginLeft: i > 0 ? -6 : 0,
                   zIndex: 10 - i,
+                  borderRadius: '50%',
+                  border: '2px solid var(--bg-secondary)',
+                  display: 'inline-flex',
                 }}
               >
-                {u.username?.[0]?.toUpperCase()}
+                {u.avatar ? (
+                  renderAvatar(u.avatar, u.username, 20)
+                ) : (
+                  <div
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: '50%',
+                      background: u.color || 'var(--accent-purple)',
+                      color: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '9px',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {u.username?.[0]?.toUpperCase()}
+                  </div>
+                )}
               </div>
             ))}
             {users.length > 0 && (
@@ -531,7 +547,14 @@ const styles = {
   loading: {
     height: '100vh', display: 'flex',
     flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', gap: 12,
+    justifyContent: 'center', background: '#050505',
+  },
+  stillLoaderInner: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+  },
+  stillLoaderText: {
+    fontSize: '15px', fontWeight: 600, color: 'var(--text-secondary)',
+    fontFamily: 'var(--font-display)',
   },
 
   toolbar: {

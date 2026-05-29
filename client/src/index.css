@@ -11,7 +11,7 @@
 
   --text-primary: #e6edf3;
   --text-secondary: #8b949e;
-  --text-muted: #484f58;
+  --text-muted: #707880;
 
   --border: #242424;
   --border-bright: #363636;
@@ -501,6 +501,26 @@ a:hover {
   }
 }
 
+.spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner-ring {
+  width: 44px;
+  height: 44px;
+  border: 3.5px solid rgba(255, 255, 255, 0.05);
+  border-top-color: var(--text-secondary);
+  border-right-color: var(--text-secondary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.1));
+  margin-bottom: 20px;
+}
+
+
 /* ── Responsive Styles ─────────────────────────────────────── */
 
 /* Tablet */
@@ -788,4 +808,16 @@ a:hover {
   .profile-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.card-action-btn:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-bright) !important;
+}
+
+.card-action-btn-delete:hover {
+  background: rgba(255, 77, 77, 0.1) !important;
+  color: #ff4d4d !important;
+  border-color: rgba(255, 77, 77, 0.3) !important;
 }

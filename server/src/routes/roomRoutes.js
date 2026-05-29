@@ -7,6 +7,8 @@ const {
   getMyRooms,
   saveSnapshot,
   getRecentActivity,
+  renameRoom,
+  deleteRoom,
 } = require("../controllers/roomController");
 const { protect } = require("../middleware/authMiddleware");
 
@@ -19,5 +21,7 @@ router.post("/join/:roomId", joinRoom); // POST /api/rooms/join/:roomId
 router.get("/my-rooms", getMyRooms); // GET  /api/rooms/my-rooms
 router.get("/:roomId", getRoom); // GET  /api/rooms/:roomId
 router.post("/:roomId/snapshot", saveSnapshot); // POST /api/rooms/:roomId/snapshot
+router.put("/:roomId", renameRoom); // PUT /api/rooms/:roomId
+router.delete("/:roomId", deleteRoom); // DELETE /api/rooms/:roomId
 
 module.exports = router;

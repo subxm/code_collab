@@ -277,4 +277,81 @@ const getRecentActivity = async (req, res) => {
   }
 };
 
-module.exports = { createRoom, joinRoom, getRoom, getMyRooms, saveSnapshot, getRecentActivity };
+// ─── Rename Room ─────────────────────────────────────────
+const renameRoom = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const { name } = req.body;
+    const userId = req.user.userId;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: "Room name is required" });
+    }
+
+    const room = await prisma.room.findUnique({
+      where: { id: roomId },
+    });
+
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    if (room.ownerId !== userId) {
+      return res.status(403).json({ message: "Only the room owner can rename this room" });
+    }
+
+    const updatedRoom = await prisma.room.update({
+      where: { id: roomId },
+      data: { name: name.trim() },
+    });
+
+    res.status(200).json({ message: "Room renamed successfully", room: updatedRoom });
+  } catch (error) {
+    console.error("Rename room error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// ─── Delete Room ─────────────────────────────────────────
+const deleteRoom = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const userId = req.user.userId;
+
+    const room = await prisma.room.findUnique({
+      where: { id: roomId },
+    });
+
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    if (room.ownerId !== userId) {
+      return res.status(403).json({ message: "Only the room owner can delete this room" });
+    }
+
+    // Use transaction to delete snapshots, roomMembers, files and then the room
+    await prisma.$transaction([
+      prisma.snapshot.deleteMany({ where: { roomId } }),
+      prisma.roomMember.deleteMany({ where: { roomId } }),
+      prisma.file.deleteMany({ where: { roomId } }),
+      prisma.room.delete({ where: { id: roomId } }),
+    ]);
+
+    res.status(200).json({ message: "Room deleted successfully" });
+  } catch (error) {
+    console.error("Delete room error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+module.exports = {
+  createRoom,
+  joinRoom,
+  getRoom,
+  getMyRooms,
+  saveSnapshot,
+  getRecentActivity,
+  renameRoom,
+  deleteRoom,
+};

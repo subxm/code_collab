@@ -13,6 +13,7 @@ const getUserProfile = async (req, res) => {
         createdAt: true,
         bio: true,
         tagline: true,
+        avatar: true,
       },
     });
 
@@ -62,7 +63,7 @@ const getUserProfile = async (req, res) => {
 const updateUserProfile = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { bio, tagline, username } = req.body;
+    const { bio, tagline, username, avatar } = req.body;
 
     if (username) {
       const existingUser = await prisma.user.findFirst({
@@ -83,6 +84,7 @@ const updateUserProfile = async (req, res) => {
         bio,
         tagline,
         username,
+        avatar,
       },
       select: {
         id: true,
@@ -90,6 +92,7 @@ const updateUserProfile = async (req, res) => {
         email: true,
         bio: true,
         tagline: true,
+        avatar: true,
       },
     });
 
