@@ -102,6 +102,12 @@ router.post("/google/exchange", async (req, res) => {
   }
 });
 
+const { getUserProfile, updateUserProfile } = require("../controllers/userController");
+
+// Profile routes (protected)
+router.get("/profile/:username", protect, getUserProfile);
+router.put("/profile", protect, updateUserProfile);
+
 // Protected route (token required)
 router.get("/me", protect, getMe);
 

@@ -6,12 +6,14 @@ const {
   getRoom,
   getMyRooms,
   saveSnapshot,
+  getRecentActivity,
 } = require("../controllers/roomController");
 const { protect } = require("../middleware/authMiddleware");
 
 // All room routes are protected (login required)
 router.use(protect);
 
+router.get("/recent-activity", getRecentActivity); // GET /api/rooms/recent-activity
 router.post("/create", createRoom); // POST /api/rooms/create
 router.post("/join/:roomId", joinRoom); // POST /api/rooms/join/:roomId
 router.get("/my-rooms", getMyRooms); // GET  /api/rooms/my-rooms

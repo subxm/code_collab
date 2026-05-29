@@ -7,6 +7,7 @@ import RegisterPage from "./pages/RegisterPage";
 import Dashboard from "./pages/Dashboard";
 import EditorRoom from "./pages/EditorRoom";
 import OAuthCallback from "./pages/OAuthCallback";
+import ProfilePage from "./pages/ProfilePage";
 
 // Protected route wrapper
 const ProtectedRoute = ({ children }) => {
@@ -26,6 +27,22 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <Dashboard />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/profile/:username"
+      element={
+        <ProtectedRoute>
+          <ProfilePage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/profile"
+      element={
+        <ProtectedRoute>
+          <ProfilePage />
         </ProtectedRoute>
       }
     />

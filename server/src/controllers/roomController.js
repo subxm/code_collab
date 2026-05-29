@@ -196,4 +196,85 @@ const saveSnapshot = async (req, res) => {
   }
 };
 
-module.exports = { createRoom, joinRoom, getRoom, getMyRooms, saveSnapshot };
+const getRecentActivity = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const memberships = await prisma.roomMember.findMany({
+      where: { userId },
+      select: { roomId: true },
+    });
+
+    const roomIds = memberships.map((m) => m.roomId);
+
+    if (roomIds.length === 0) {
+      return res.status(200).json({ activities: [] });
+    }
+
+    const recentFiles = await prisma.file.findMany({
+      where: { roomId: { in: roomIds } },
+      orderBy: { updatedAt: "desc" },
+      take: 5,
+      include: {
+        room: { select: { name: true } },
+      },
+    });
+
+    const recentSnapshots = await prisma.snapshot.findMany({
+      where: { roomId: { in: roomIds } },
+      orderBy: { savedAt: "desc" },
+      take: 5,
+      include: {
+        room: { select: { name: true } },
+      },
+    });
+
+    const recentRooms = await prisma.room.findMany({
+      where: { id: { in: roomIds } },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    });
+
+    const activities = [];
+
+    recentFiles.forEach((file) => {
+      activities.push({
+        id: `file-${file.id}`,
+        type: "file_update",
+        title: `File "${file.name}" modified`,
+        detail: `Room: ${file.room.name}`,
+        timestamp: file.updatedAt,
+      });
+    });
+
+    recentSnapshots.forEach((snap) => {
+      activities.push({
+        id: `snap-${snap.id}`,
+        type: "snapshot_save",
+        title: `Saved code snapshot`,
+        detail: `Room: ${snap.room.name}`,
+        timestamp: snap.savedAt,
+      });
+    });
+
+    recentRooms.forEach((room) => {
+      activities.push({
+        id: `room-${room.id}`,
+        type: "room_created",
+        title: `Joined room "${room.name}"`,
+        detail: `Language: ${room.language}`,
+        timestamp: room.createdAt,
+      });
+    });
+
+    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const recentActivities = activities.slice(0, 8);
+
+    res.status(200).json({ activities: recentActivities });
+  } catch (error) {
+    console.error("Get recent activity error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+module.exports = { createRoom, joinRoom, getRoom, getMyRooms, saveSnapshot, getRecentActivity };

@@ -16,6 +16,8 @@ model User {
   resetTokenExpiry DateTime?
   createdAt        DateTime   @default(now())
   rooms            RoomMember[]
+  bio              String?    @default("Collaborative developer")
+  tagline          String?    @default("Building things together")
 }
 
 model Room {
