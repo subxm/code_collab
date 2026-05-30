@@ -5,7 +5,7 @@ import { MonacoBinding } from "y-monaco";
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-const useCollaboration = (roomId, username, avatar, editorRef) => {
+const useCollaboration = (roomId, username, avatar) => {
   const socketRef = useRef(null);
   const ydocRef = useRef(null);
   const bindingRef = useRef(null);

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -42,7 +43,7 @@ const timeAgo = (dateStr) => {
 };
 
 // Preset Avatars definition
-export const PRESET_AVATARS = [
+const PRESET_AVATARS = [
   { id: 'preset_1', name: 'Code Master', gradient: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', symbol: '</>' },
   { id: 'preset_2', name: 'Sunset Brackets', gradient: 'linear-gradient(135deg, #f97316 0%, #c2410c 100%)', symbol: '{}' },
   { id: 'preset_3', name: 'Cyber Zap', gradient: 'linear-gradient(135deg, #a855f7 0%, #6b21a8 100%)', symbol: '⚡' },

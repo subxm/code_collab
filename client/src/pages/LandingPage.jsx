@@ -984,7 +984,6 @@ const styles = {
     minHeight: 24,
   },
   lineNum: { color: "#484f58", width: 16, textAlign: "right", flexShrink: 0 },
-  cursor: { color: "var(--accent-cyan)", fontFamily: "var(--font-mono)" },
 
   statsTicker: {
     borderTop: "1px solid var(--border)",

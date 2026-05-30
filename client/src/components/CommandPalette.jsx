@@ -13,9 +13,11 @@ const CommandPalette = ({ isOpen, onClose, actions }) => {
 
   useEffect(() => {
     if (isOpen) {
-      setQuery('')
-      setSelectedIndex(0)
-      setTimeout(() => inputRef.current?.focus(), 50)
+      setTimeout(() => {
+        setQuery('')
+        setSelectedIndex(0)
+        inputRef.current?.focus()
+      }, 50)
     }
   }, [isOpen])
 
@@ -27,10 +29,6 @@ const CommandPalette = ({ isOpen, onClose, actions }) => {
       (a.category && a.category.toLowerCase().includes(q))
     )
   }, [query, actions])
-
-  useEffect(() => {
-    setSelectedIndex(0)
-  }, [query])
 
   // Scroll selected item into view
   useEffect(() => {
@@ -84,7 +82,7 @@ const CommandPalette = ({ isOpen, onClose, actions }) => {
               style={styles.input}
               placeholder="Type a command..."
               value={query}
-              onChange={e => setQuery(e.target.value)}
+              onChange={e => { setQuery(e.target.value); setSelectedIndex(0); }}
               onKeyDown={handleKeyDown}
             />
             <kbd style={styles.kbd}>ESC</kbd>
