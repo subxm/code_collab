@@ -9,24 +9,25 @@ import {
   Trash2,
 } from "lucide-react";
 
-const TerminalPanel = ({ output, isRunning, error, onClear }) => {
+const TerminalPanel = ({ output, isRunning, error, onClear, consoleLogs }) => {
   const bottomRef = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [output, error]);
+  }, [output, error, consoleLogs]);
 
   return (
     <div style={styles.terminal}>
       {/* Header */}
       <div style={styles.header}>
         <div style={styles.headerLeft}>
-          <Terminal size={13} color="var(--accent-green)" />
+          <Terminal size={14} color="var(--text-secondary)" style={{ marginRight: 6 }} />
           <span style={styles.headerTitle}>Terminal</span>
           {isRunning && (
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              style={{ display: "flex", alignItems: "center" }}
             >
               <Loader2 size={12} color="var(--accent-cyan)" />
             </motion.div>
@@ -75,66 +76,74 @@ const TerminalPanel = ({ output, isRunning, error, onClear }) => {
                 Running…
               </motion.span>
             </motion.div>
-          ) : error ? (
-            <motion.div
-              key="error"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              style={styles.errorText}
-            >
-              <span style={styles.prompt}>$</span>
-              {error}
-            </motion.div>
-          ) : output ? (
-            <motion.div
-              key="output"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              {output.stdout && (
-                <div style={styles.outputBlock}>
-                  <span style={styles.prompt}>stdout</span>
-                  <pre style={styles.pre}>{output.stdout}</pre>
-                </div>
-              )}
-              {output.stderr && (
-                <div style={styles.outputBlock}>
-                  <span style={{ ...styles.prompt, color: "#ff4d4d" }}>
-                    stderr
-                  </span>
-                  <pre style={{ ...styles.pre, color: "#ff6b6b" }}>
-                    {output.stderr}
-                  </pre>
-                </div>
-              )}
-              {output.compileOutput && (
-                <div style={styles.outputBlock}>
-                  <span style={{ ...styles.prompt, color: "#ffa657" }}>
-                    compile
-                  </span>
-                  <pre style={{ ...styles.pre, color: "#ffa657" }}>
-                    {output.compileOutput}
-                  </pre>
-                </div>
-              )}
-              {output.time && (
-                <div style={styles.meta}>
-                  Finished in {output.time}s
-                  {output.memory && ` · ${Math.round(output.memory / 1024)}MB`}
-                </div>
-              )}
-            </motion.div>
           ) : (
-            <motion.div
-              key="empty"
-              style={styles.empty}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              <span style={styles.prompt}>$</span>
-              <span style={{ color: "var(--text-muted)" }}>
-                Run your code to see output here
-              </span>
+            <motion.div key="output-container" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              {/* Show console logs from preview */}
+              {consoleLogs && consoleLogs.length > 0 && (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', paddingBottom: 4, marginBottom: 8, display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-green)' }} />
+                    Browser Console Logs
+                  </div>
+                  {consoleLogs.map((log, i) => (
+                    <div key={i} style={{ marginBottom: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '11px' }}>
+                        <span className={log.type === 'error' ? 'term-error' : log.type === 'warn' ? 'term-warning' : 'term-system'} style={{ fontWeight: 600 }}>
+                          {log.type.toUpperCase()}
+                        </span>
+                        <span style={{ color: 'var(--text-muted)' }}>{log.timestamp}</span>
+                      </div>
+                      <pre style={styles.pre} className={log.type === 'error' ? 'term-error' : log.type === 'warn' ? 'term-warning' : 'term-success'}>
+                        {log.text}
+                      </pre>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Show server compilation output */}
+              {output && (
+                <div>
+                  {output.stdout && (
+                    <div style={styles.outputBlock}>
+                      <span className="term-system" style={{ marginRight: 10 }}>stdout</span>
+                      <pre style={styles.pre} className="term-success">{output.stdout}</pre>
+                    </div>
+                  )}
+                  {output.stderr && (
+                    <div style={styles.outputBlock}>
+                      <span className="term-error" style={styles.prompt}>stderr</span>
+                      <pre style={styles.pre} className="term-error">{output.stderr}</pre>
+                    </div>
+                  )}
+                  {output.compileOutput && (
+                    <div style={styles.outputBlock}>
+                      <span className="term-warning" style={styles.prompt}>compile</span>
+                      <pre style={styles.pre} className="term-warning">{output.compileOutput}</pre>
+                    </div>
+                  )}
+                  {output.time && (
+                    <div style={styles.meta}>
+                      Finished in {output.time}s
+                      {output.memory && ` · ${Math.round(output.memory / 1024)}MB`}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {error && (
+                <div style={styles.errorText}>
+                  <span style={styles.prompt}>$</span>
+                  {error}
+                </div>
+              )}
+
+              {!error && !output && (!consoleLogs || consoleLogs.length === 0) && (
+                <div style={styles.empty}>
+                  <span style={styles.prompt}>$</span>
+                  <span className="term-system">Run your code or open preview to see output here</span>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -149,7 +158,7 @@ const styles = {
     height: "100%",
     display: "flex",
     flexDirection: "column",
-    background: "var(--bg-primary)",
+    background: "rgba(10, 10, 14, 0.9)",
     fontFamily: "var(--font-mono)",
   },
   header: {
@@ -158,7 +167,7 @@ const styles = {
     justifyContent: "space-between",
     padding: "8px 14px",
     borderBottom: "1px solid var(--border)",
-    background: "var(--bg-secondary)",
+    background: "rgba(20, 20, 26, 0.45)",
   },
   headerLeft: { display: "flex", alignItems: "center", gap: 8 },
   headerRight: { display: "flex", alignItems: "center", gap: 10 },

@@ -14,6 +14,7 @@ const useCollaboration = (roomId, username, avatar, editorRef) => {
   const [messages, setMessages] = useState([]);
   const [language, setLanguage] = useState("javascript");
   const [isConnected, setIsConnected] = useState(false);
+  const [lastEditedBy, setLastEditedBy] = useState(null);
 
   useEffect(() => {
     if (!roomId || !username) return;
@@ -56,8 +57,11 @@ const useCollaboration = (roomId, username, avatar, editorRef) => {
     });
 
     // Receive code updates
-    socket.on("code-update", ({ update }) => {
+    socket.on("code-update", ({ update, username: editorUsername }) => {
       Y.applyUpdate(ydoc, new Uint8Array(update));
+      if (editorUsername) {
+        setLastEditedBy({ username: editorUsername, timestamp: new Date() });
+      }
     });
 
     // Send our changes
@@ -132,6 +136,8 @@ const useCollaboration = (roomId, username, avatar, editorRef) => {
     bindEditor,
     sendMessage,
     changeLanguage,
+    lastEditedBy,
+    setLastEditedBy,
   };
 };
 

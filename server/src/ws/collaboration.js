@@ -87,7 +87,13 @@ const initCollaboration = (server) => {
         if (!ydoc) return;
 
         Y.applyUpdate(ydoc, new Uint8Array(update));
-        socket.to(roomId).emit("code-update", { update });
+
+        // Find user name from roomUsers
+        const users = roomUsers.get(roomId);
+        const user = users ? users.get(socket.id) : null;
+        const username = user ? user.username : null;
+
+        socket.to(roomId).emit("code-update", { update, username });
 
         const currentCode = ydoc.getText("code").toString();
         await prisma.room.update({
