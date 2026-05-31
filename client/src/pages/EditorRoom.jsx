@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import Editor from '@monaco-editor/react'
 import { useAuth } from '../context/AuthContext'
 import useCollaboration from '../hooks/useCollaboration'
@@ -18,7 +18,7 @@ import {
   Code2, Play, Users, ChevronDown,
   Copy, Check, Brain, Terminal,
   ArrowLeft, Save, Loader2, X, Eye, FileCode2,
-  Phone, PhoneOff, Video, VideoOff, Mic, MicOff
+  Phone, PhoneOff, Video, VideoOff, Mic, MicOff, RefreshCw
 } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import Logo from '../components/Logo'
@@ -57,12 +57,13 @@ const CopyButton = ({ text }) => {
 // ── Video Feed Component ─────────────────────────────────
 const VideoFeed = ({ stream, isLocal, username, avatar, isMuted, isVideoOff }) => {
   const videoRef = useRef(null);
+  const [isMirrored, setIsMirrored] = useState(isLocal);
 
   useEffect(() => {
-    if (videoRef.current && stream) {
+    if (videoRef.current && stream && !isVideoOff) {
       videoRef.current.srcObject = stream;
     }
-  }, [stream]);
+  }, [stream, isVideoOff]);
 
   return (
     <div style={styles.videoBlock}>
@@ -78,13 +79,26 @@ const VideoFeed = ({ stream, isLocal, username, avatar, isMuted, isVideoOff }) =
           <span style={styles.videoMutedOverlayLabel}>Camera Off</span>
         </div>
       ) : (
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted={isLocal}
-          style={styles.videoElement}
-        />
+        <>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted={isLocal}
+            style={{ 
+              ...styles.videoElement, 
+              transform: isMirrored ? 'scaleX(-1)' : 'none',
+              transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+          />
+          <button
+            onClick={(e) => { e.stopPropagation(); setIsMirrored(prev => !prev); }}
+            style={styles.mirrorToggleBtn}
+            title="Toggle mirror view"
+          >
+            <RefreshCw size={10} style={{ transform: isMirrored ? 'scaleX(-1)' : 'none' }} />
+          </button>
+        </>
       )}
       <div style={styles.videoUsernameBadge}>
         {username} {isLocal && "(You)"}
@@ -101,6 +115,7 @@ const EditorRoom = () => {
   const { user, token }   = useAuth()
   const { theme, toggleTheme } = useTheme()
   const editorRef         = useRef(null)
+  const roomRef           = useRef(null)
 
   const [room,         setRoom]         = useState(null)
   const [files,        setFiles]        = useState([])
@@ -150,6 +165,8 @@ const EditorRoom = () => {
     localStream, peers, inCall, isMuted, isVideoOff,
     joinCall, leaveCall, toggleMute, toggleVideo
   } = useWebRTC(socketRef.current, roomId, user?.username, user?.avatar)
+
+  const callDragControls = useDragControls()
 
   const {
     output, isRunning, error: execError,
@@ -721,7 +738,7 @@ const EditorRoom = () => {
   }
 
   return (
-    <div style={styles.page}>
+    <div ref={roomRef} style={styles.page}>
       {isDragging && (
         <div
           style={{
@@ -1261,25 +1278,36 @@ const EditorRoom = () => {
       <AnimatePresence>
         {inCall && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.9, y: -20 }}
             animate={{ 
               opacity: 1, 
               scale: 1, 
               y: 0,
-              bottom: bottomPanel === "terminal" ? terminalHeight + 60 : 30,
+            }}
+            exit={{ opacity: 0, scale: 0.9, y: -20 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+            style={{
+              ...styles.callCard,
+              top: 70,
               right: rightPanel === "ai" ? rightPanelWidth + 30 : 30
             }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-            style={styles.callCard}
+            drag
+            dragControls={callDragControls}
+            dragListener={false}
+            dragConstraints={roomRef}
+            dragMomentum={false}
+            dragElastic={0.05}
           >
-            {/* Call Card Header */}
-            <div style={styles.callCardHeader}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Call Card Header (Drag Trigger) */}
+            <div 
+              style={styles.callCardHeader}
+              onPointerDown={(e) => callDragControls.start(e)}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'none' }}>
                 <span className="pulse-dot" style={{ background: 'var(--accent-green)', width: 6, height: 6, borderRadius: '50%', display: 'inline-block' }} />
                 <span style={styles.callCardTitle}>Room Call</span>
               </div>
-              <span style={styles.callCardParticipantsCount}>{peers.length + 1} online</span>
+              <span style={{ ...styles.callCardParticipantsCount, pointerEvents: 'none' }}>{peers.length + 1} online</span>
             </div>
 
             {/* Video Streams Grid */}
@@ -1670,7 +1698,7 @@ const styles = {
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
-    transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+    touchAction: 'none',
   },
   callCardHeader: {
     display: 'flex',
@@ -1679,6 +1707,8 @@ const styles = {
     padding: '12px 14px',
     borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
     background: 'rgba(255, 255, 255, 0.02)',
+    cursor: 'grab',
+    userSelect: 'none',
   },
   callCardTitle: {
     fontSize: '12px',
@@ -1715,6 +1745,24 @@ const styles = {
     width: '100%',
     height: '100%',
     objectFit: 'cover',
+  },
+  mirrorToggleBtn: {
+    position: 'absolute',
+    top: '6px',
+    right: '6px',
+    zIndex: 10,
+    width: '20px',
+    height: '20px',
+    borderRadius: '4px',
+    background: 'rgba(15, 15, 20, 0.65)',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    color: '#ffffff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    opacity: 0.6,
+    transition: 'opacity 0.2s, background 0.2s',
   },
   videoAvatarWrap: {
     display: 'flex',
