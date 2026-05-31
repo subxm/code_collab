@@ -73,6 +73,11 @@ const initCollaboration = (server) => {
         const usersInRoom = Array.from(roomUsers.get(roomId).values());
         io.to(roomId).emit("room-users", usersInRoom);
 
+        // Send initial list of active call users to the newly joined user
+        const callUsers = roomCalls.get(roomId);
+        const activeUsers = callUsers ? Array.from(callUsers.values()) : [];
+        socket.emit("active-call-users", activeUsers);
+
         console.log(
           `👤 ${username} joined room ${roomId} — ${usersInRoom.length} online`,
         );
@@ -159,6 +164,9 @@ const initCollaboration = (server) => {
         avatar,
       });
 
+      // Broadcast list of active call users to everyone in the room
+      io.to(roomId).emit("active-call-users", Array.from(callUsers.values()));
+
       console.log(`📞 User ${username} (${socket.id}) joined call in room ${roomId}`);
     });
 
@@ -184,6 +192,11 @@ const initCollaboration = (server) => {
         callUsers.delete(socket.id);
         socket.to(roomId).emit("user-left-call", { socketId: socket.id, username: user.username });
         console.log(`📞 User ${user.username} left call in room ${roomId}`);
+        
+        // Broadcast updated active call users to everyone in the room
+        const activeUsers = Array.from(callUsers.values());
+        io.to(roomId).emit("active-call-users", activeUsers);
+
         if (callUsers.size === 0) {
           roomCalls.delete(roomId);
         }
@@ -202,6 +215,11 @@ const initCollaboration = (server) => {
           callUsers.delete(socket.id);
           socket.to(roomId).emit("user-left-call", { socketId: socket.id, username: user.username });
           console.log(`📞 User ${user.username} disconnected from call in room ${roomId}`);
+          
+          // Broadcast updated active call users to everyone in the room
+          const activeUsers = Array.from(callUsers.values());
+          io.to(roomId).emit("active-call-users", activeUsers);
+
           if (callUsers.size === 0) {
             roomCalls.delete(roomId);
           }

@@ -15,6 +15,7 @@ const useCollaboration = (roomId, username, avatar) => {
   const [language, setLanguage] = useState("javascript");
   const [isConnected, setIsConnected] = useState(false);
   const [lastEditedBy, setLastEditedBy] = useState(null);
+  const [activeCallUsers, setActiveCallUsers] = useState([]);
 
   useEffect(() => {
     if (!roomId || !username) return;
@@ -78,6 +79,12 @@ const useCollaboration = (roomId, username, avatar) => {
       setUsers(roomUsers);
     });
 
+    // Active call users
+    socket.on("active-call-users", (callUsers) => {
+      console.log("📞 Active call users update:", callUsers);
+      setActiveCallUsers(callUsers);
+    });
+
     // Language change
     socket.on("language-change", ({ language }) => {
       setLanguage(language);
@@ -139,6 +146,7 @@ const useCollaboration = (roomId, username, avatar) => {
     lastEditedBy,
     setLastEditedBy,
     socketRef,
+    activeCallUsers,
   };
 };
 

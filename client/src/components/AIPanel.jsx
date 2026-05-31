@@ -353,19 +353,37 @@ const AIPanel = ({
 
   // Auto-expand textarea for room chat
   useEffect(() => {
-    if (roomTextareaRef.current) {
-      roomTextareaRef.current.style.height = "auto";
-      roomTextareaRef.current.style.height = `${Math.min(roomTextareaRef.current.scrollHeight, 120)}px`;
-    }
-  }, [roomInput]);
+    const adjustHeight = () => {
+      const textarea = roomTextareaRef.current;
+      if (textarea) {
+        textarea.style.height = "34px";
+        if (roomInput) {
+          textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
+        }
+      }
+    };
+
+    adjustHeight();
+    const timer = setTimeout(adjustHeight, 100);
+    return () => clearTimeout(timer);
+  }, [roomInput, activeTab]);
 
   // Auto-expand textarea for AI chat
   useEffect(() => {
-    if (aiTextareaRef.current) {
-      aiTextareaRef.current.style.height = "auto";
-      aiTextareaRef.current.style.height = `${Math.min(aiTextareaRef.current.scrollHeight, 120)}px`;
-    }
-  }, [aiInput]);
+    const adjustHeight = () => {
+      const textarea = aiTextareaRef.current;
+      if (textarea) {
+        textarea.style.height = "34px";
+        if (aiInput) {
+          textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
+        }
+      }
+    };
+
+    adjustHeight();
+    const timer = setTimeout(adjustHeight, 100);
+    return () => clearTimeout(timer);
+  }, [aiInput, activeTab]);
 
   const handleRoomSend = () => {
     if (!roomInput.trim()) return;

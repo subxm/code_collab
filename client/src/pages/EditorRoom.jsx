@@ -55,7 +55,7 @@ const CopyButton = ({ text }) => {
 }
 
 // ── Video Feed Component ─────────────────────────────────
-const VideoFeed = ({ stream, isLocal, username, avatar, isMuted, isVideoOff }) => {
+const VideoFeed = ({ stream, isLocal, username, avatar, isMuted, isVideoOff, onDoubleClick, style }) => {
   const videoRef = useRef(null);
   const [isMirrored, setIsMirrored] = useState(isLocal);
 
@@ -66,7 +66,11 @@ const VideoFeed = ({ stream, isLocal, username, avatar, isMuted, isVideoOff }) =
   }, [stream, isVideoOff]);
 
   return (
-    <div style={styles.videoBlock}>
+    <div 
+      style={{ ...styles.videoBlock, ...style }} 
+      onDoubleClick={onDoubleClick}
+      title="Double click to pin/focus"
+    >
       {(!stream || isVideoOff) ? (
         <div style={styles.videoAvatarWrap}>
           {avatar ? (
@@ -158,13 +162,33 @@ const EditorRoom = () => {
   const {
     users, messages, isConnected,
     bindEditor, sendMessage, changeLanguage,
-    lastEditedBy, setLastEditedBy, socketRef
+    lastEditedBy, setLastEditedBy, socketRef,
+    activeCallUsers
   } = useCollaboration(roomId, user?.username, user?.avatar)
 
   const {
     localStream, peers, inCall, isMuted, isVideoOff,
     joinCall, leaveCall, toggleMute, toggleVideo
   } = useWebRTC(socketRef.current, roomId, user?.username, user?.avatar)
+
+  const [pinnedUserId, setPinnedUserId] = useState(null)
+
+  // Reset pin if we leave the call
+  useEffect(() => {
+    if (!inCall) {
+      setPinnedUserId(null);
+    }
+  }, [inCall]);
+
+  // Reset pin if the pinned user leaves the call
+  useEffect(() => {
+    if (pinnedUserId && pinnedUserId !== "local") {
+      const exists = peers.some(p => p.socketId === pinnedUserId);
+      if (!exists) {
+        setPinnedUserId(null);
+      }
+    }
+  }, [peers, pinnedUserId]);
 
   const callDragControls = useDragControls()
   const [callWidth, setCallWidth] = useState(480)
@@ -766,6 +790,32 @@ const EditorRoom = () => {
     )
   }
 
+  const localParticipant = {
+    id: "local",
+    stream: localStream,
+    isLocal: true,
+    username: user?.username,
+    avatar: user?.avatar,
+    isMuted: isMuted,
+    isVideoOff: isVideoOff
+  };
+
+  const allParticipants = [
+    localParticipant,
+    ...peers.map(p => ({
+      id: p.socketId,
+      stream: p.stream,
+      isLocal: false,
+      username: p.username,
+      avatar: p.avatar,
+      isMuted: p.isMuted,
+      isVideoOff: p.isVideoOff
+    }))
+  ];
+
+  const pinnedParticipant = allParticipants.find(p => p.id === pinnedUserId);
+  const thumbnails = allParticipants.filter(p => p.id !== pinnedUserId);
+
   return (
     <div ref={roomRef} style={styles.page}>
       {isDragging && (
@@ -901,29 +951,34 @@ const EditorRoom = () => {
         <div style={styles.toolbarRight}>
           {/* Voice/Video Call trigger */}
           <button
-            onClick={inCall ? leaveCall : joinCall}
+            onClick={inCall ? undefined : joinCall}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              background: inCall ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-              border: inCall ? '1px solid var(--accent-green)' : '1px solid rgba(255, 255, 255, 0.05)',
+              background: (inCall || activeCallUsers?.length > 0) ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+              border: (inCall || activeCallUsers?.length > 0) ? '1px solid var(--accent-green)' : '1px solid rgba(255, 255, 255, 0.05)',
               borderRadius: 20,
               padding: '6px 12px',
-              cursor: 'pointer',
-              color: inCall ? 'var(--accent-green)' : 'var(--text-secondary)',
+              cursor: inCall ? 'default' : 'pointer',
+              color: (inCall || activeCallUsers?.length > 0) ? 'var(--accent-green)' : 'var(--text-secondary)',
               fontWeight: 600,
               fontSize: '12px',
               transition: 'all 0.2s',
               marginRight: 8,
-              boxShadow: inCall ? '0 0 10px rgba(16, 185, 129, 0.2)' : 'none',
+              boxShadow: (inCall || activeCallUsers?.length > 0) ? '0 0 10px rgba(16, 185, 129, 0.2)' : 'none',
             }}
-            title={inCall ? "Leave call" : "Join voice/video call"}
+            title={inCall ? "Active in call" : activeCallUsers?.length > 0 ? "Join active voice/video call" : "Join voice/video call"}
           >
             {inCall ? (
               <>
-                <PhoneOff size={13} color="var(--accent-red)" style={{ animation: 'pulse 1.5s infinite' }} />
+                <Phone size={13} style={{ animation: 'pulse 1.5s infinite' }} />
                 <span style={{ color: 'var(--accent-green)' }}>In Call ({peers.length + 1})</span>
+              </>
+            ) : activeCallUsers?.length > 0 ? (
+              <>
+                <Phone size={13} />
+                <span>Join Call ({activeCallUsers.length})</span>
               </>
             ) : (
               <>
@@ -1341,37 +1396,86 @@ const EditorRoom = () => {
               <span style={{ ...styles.callCardParticipantsCount, pointerEvents: 'none' }}>{peers.length + 1} online</span>
             </div>
 
-            {/* Video Streams Grid */}
-            <div style={{
-              ...styles.videoGrid,
-              gridTemplateColumns: (peers.length + 1) === 1 ? '1fr' : 
-                                   (peers.length + 1) === 2 ? '1fr 1fr' :
-                                   (peers.length + 1) <= 4 ? '1fr 1fr' :
-                                   (peers.length + 1) <= 9 ? '1fr 1fr 1fr' : '1fr 1fr 1fr 1fr',
-            }}>
-              {/* Local Video Feed */}
-              <VideoFeed
-                stream={localStream}
-                isLocal={true}
-                username={user?.username}
-                avatar={user?.avatar}
-                isMuted={isMuted}
-                isVideoOff={isVideoOff}
-              />
+            {/* Video Streams Container */}
+            {pinnedUserId && pinnedParticipant ? (
+              <div style={styles.focusLayout}>
+                {/* Thumbnails Row */}
+                <div style={styles.thumbnailRow}>
+                  {thumbnails.map((p) => (
+                    <VideoFeed
+                      key={p.id}
+                      stream={p.stream}
+                      isLocal={p.isLocal}
+                      username={p.username}
+                      avatar={p.avatar}
+                      isMuted={p.isMuted}
+                      isVideoOff={p.isVideoOff}
+                      onDoubleClick={() => setPinnedUserId(p.id)}
+                      style={styles.thumbnailVideo}
+                    />
+                  ))}
+                </div>
 
-              {/* Remote Video Feeds */}
-              {peers.map((peer) => (
+                {/* Pinned Video Area */}
+                <div style={styles.pinnedVideoContainer}>
+                  <VideoFeed
+                    stream={pinnedParticipant.stream}
+                    isLocal={pinnedParticipant.isLocal}
+                    username={pinnedParticipant.username}
+                    avatar={pinnedParticipant.avatar}
+                    isMuted={pinnedParticipant.isMuted}
+                    isVideoOff={pinnedParticipant.isVideoOff}
+                    onDoubleClick={() => setPinnedUserId(null)}
+                    style={{ width: '100%', height: '100%' }}
+                  />
+                  {/* Pin badge/indicator */}
+                  <div style={styles.pinIndicatorBadge}>
+                    <span>Pinned</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                ...styles.videoGrid,
+                gridTemplateColumns: `repeat(${
+                  (peers.length + 1) === 1 ? 1 : 
+                  (peers.length + 1) === 2 ? 2 :
+                  (peers.length + 1) <= 4 ? 2 :
+                  (peers.length + 1) <= 6 ? 3 :
+                  (peers.length + 1) <= 9 ? 3 : 4
+                }, 1fr)`,
+                gridTemplateRows: `repeat(${
+                  (peers.length + 1) === 1 ? 1 : 
+                  (peers.length + 1) === 2 ? 1 :
+                  (peers.length + 1) <= 4 ? 2 :
+                  (peers.length + 1) <= 6 ? 2 :
+                  (peers.length + 1) <= 9 ? 3 : Math.ceil((peers.length + 1) / 4)
+                }, 1fr)`,
+              }}>
                 <VideoFeed
-                  key={peer.socketId}
-                  stream={peer.stream}
-                  isLocal={false}
-                  username={peer.username}
-                  avatar={peer.avatar}
-                  isMuted={peer.isMuted}
-                  isVideoOff={peer.isVideoOff}
+                  stream={localStream}
+                  isLocal={true}
+                  username={user?.username}
+                  avatar={user?.avatar}
+                  isMuted={isMuted}
+                  isVideoOff={isVideoOff}
+                  onDoubleClick={() => setPinnedUserId("local")}
                 />
-              ))}
-            </div>
+
+                {peers.map((peer) => (
+                  <VideoFeed
+                    key={peer.socketId}
+                    stream={peer.stream}
+                    isLocal={false}
+                    username={peer.username}
+                    avatar={peer.avatar}
+                    isMuted={peer.isMuted}
+                    isVideoOff={peer.isVideoOff}
+                    onDoubleClick={() => setPinnedUserId(peer.socketId)}
+                  />
+                ))}
+              </div>
+            )}
 
             {/* Call Control Strip */}
             <div style={styles.callControlsStrip}>
@@ -1777,7 +1881,6 @@ const styles = {
   },
   videoBlock: {
     position: 'relative',
-    aspectRatio: '4/3',
     background: 'rgba(10, 10, 15, 0.8)',
     borderRadius: '8px',
     overflow: 'hidden',
@@ -1785,6 +1888,55 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
+    height: '100%',
+  },
+  focusLayout: {
+    display: 'flex',
+    flexDirection: 'column',
+    flex: 1,
+    gap: '8px',
+    padding: '8px',
+    background: 'rgba(0, 0, 0, 0.2)',
+    overflow: 'hidden',
+  },
+  thumbnailRow: {
+    display: 'flex',
+    gap: '8px',
+    overflowX: 'auto',
+    height: '90px',
+    flexShrink: 0,
+    paddingBottom: '4px',
+  },
+  thumbnailVideo: {
+    width: '120px',
+    height: '100%',
+    flexShrink: 0,
+  },
+  pinnedVideoContainer: {
+    flex: 1,
+    position: 'relative',
+    borderRadius: '8px',
+    overflow: 'hidden',
+    minHeight: 0,
+  },
+  pinIndicatorBadge: {
+    position: 'absolute',
+    top: '6px',
+    left: '6px',
+    background: 'rgba(139, 92, 246, 0.85)',
+    backdropFilter: 'blur(4px)',
+    padding: '2px 8px',
+    borderRadius: '12px',
+    fontSize: '9px',
+    color: '#ffffff',
+    fontWeight: 600,
+    fontFamily: 'var(--font-mono)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    zIndex: 10,
+    display: 'flex',
+    alignItems: 'center',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
   },
   videoElement: {
     width: '100%',
