@@ -138,6 +138,7 @@ const useCollaboration = (roomId, username, avatar) => {
     changeLanguage,
     lastEditedBy,
     setLastEditedBy,
+    socketRef,
   };
 };
 

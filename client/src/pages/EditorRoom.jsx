@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Editor from '@monaco-editor/react'
 import { useAuth } from '../context/AuthContext'
 import useCollaboration from '../hooks/useCollaboration'
+import { useWebRTC } from '../hooks/useWebRTC'
 import useExecution from '../hooks/useExecution'
 import useAI from '../hooks/useAI'
 import TerminalPanel from '../components/TerminalPanel'
@@ -16,8 +17,8 @@ import CommandPalette from '../components/CommandPalette'
 import {
   Code2, Play, Users, ChevronDown,
   Copy, Check, Brain, Terminal,
-  ArrowLeft, Save,
-  Loader2, X, Eye, FileCode2
+  ArrowLeft, Save, Loader2, X, Eye, FileCode2,
+  Phone, PhoneOff, Video, VideoOff, Mic, MicOff
 } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import Logo from '../components/Logo'
@@ -52,6 +53,46 @@ const CopyButton = ({ text }) => {
     </button>
   )
 }
+
+// ── Video Feed Component ─────────────────────────────────
+const VideoFeed = ({ stream, isLocal, username, avatar, isMuted, isVideoOff }) => {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream]);
+
+  return (
+    <div style={styles.videoBlock}>
+      {(!stream || isVideoOff) ? (
+        <div style={styles.videoAvatarWrap}>
+          {avatar ? (
+            renderAvatar(avatar, username, 48)
+          ) : (
+            <div style={styles.videoAvatarPlaceholder}>
+              {username?.[0]?.toUpperCase()}
+            </div>
+          )}
+          <span style={styles.videoMutedOverlayLabel}>Camera Off</span>
+        </div>
+      ) : (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted={isLocal}
+          style={styles.videoElement}
+        />
+      )}
+      <div style={styles.videoUsernameBadge}>
+        {username} {isLocal && "(You)"}
+        {isMuted && <MicOff size={10} color="var(--accent-red)" style={{ marginLeft: 6 }} />}
+      </div>
+    </div>
+  );
+};
 
 // ── EditorRoom ───────────────────────────────────────────
 const EditorRoom = () => {
@@ -102,8 +143,13 @@ const EditorRoom = () => {
   const {
     users, messages, isConnected,
     bindEditor, sendMessage, changeLanguage,
-    lastEditedBy, setLastEditedBy
-  } = useCollaboration(roomId, user?.username, user?.avatar, editorRef)
+    lastEditedBy, setLastEditedBy, socketRef
+  } = useCollaboration(roomId, user?.username, user?.avatar)
+
+  const {
+    localStream, peers, inCall, isMuted, isVideoOff,
+    joinCall, leaveCall, toggleMute, toggleVideo
+  } = useWebRTC(socketRef.current, roomId, user?.username, user?.avatar)
 
   const {
     output, isRunning, error: execError,
@@ -807,6 +853,40 @@ const EditorRoom = () => {
 
         {/* Right */}
         <div style={styles.toolbarRight}>
+          {/* Voice/Video Call trigger */}
+          <button
+            onClick={inCall ? leaveCall : joinCall}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              background: inCall ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+              border: inCall ? '1px solid var(--accent-green)' : '1px solid rgba(255, 255, 255, 0.05)',
+              borderRadius: 20,
+              padding: '6px 12px',
+              cursor: 'pointer',
+              color: inCall ? 'var(--accent-green)' : 'var(--text-secondary)',
+              fontWeight: 600,
+              fontSize: '12px',
+              transition: 'all 0.2s',
+              marginRight: 8,
+              boxShadow: inCall ? '0 0 10px rgba(16, 185, 129, 0.2)' : 'none',
+            }}
+            title={inCall ? "Leave call" : "Join voice/video call"}
+          >
+            {inCall ? (
+              <>
+                <PhoneOff size={13} color="var(--accent-red)" style={{ animation: 'pulse 1.5s infinite' }} />
+                <span style={{ color: 'var(--accent-green)' }}>In Call ({peers.length + 1})</span>
+              </>
+            ) : (
+              <>
+                <Phone size={13} />
+                <span>Join Call</span>
+              </>
+            )}
+          </button>
+
           {/* Clickable Online users list */}
           <button
             onClick={() => setShowPeople(prev => !prev)}
@@ -1177,6 +1257,105 @@ const EditorRoom = () => {
         )}
       </AnimatePresence>
 
+      {/* ── Call Floating Grid Overlay ────────────── */}
+      <AnimatePresence>
+        {inCall && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ 
+              opacity: 1, 
+              scale: 1, 
+              y: 0,
+              bottom: bottomPanel === "terminal" ? terminalHeight + 60 : 30,
+              right: rightPanel === "ai" ? rightPanelWidth + 30 : 30
+            }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+            style={styles.callCard}
+          >
+            {/* Call Card Header */}
+            <div style={styles.callCardHeader}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="pulse-dot" style={{ background: 'var(--accent-green)', width: 6, height: 6, borderRadius: '50%', display: 'inline-block' }} />
+                <span style={styles.callCardTitle}>Room Call</span>
+              </div>
+              <span style={styles.callCardParticipantsCount}>{peers.length + 1} online</span>
+            </div>
+
+            {/* Video Streams Grid */}
+            <div style={{
+              ...styles.videoGrid,
+              gridTemplateColumns: (peers.length + 1) === 1 ? '1fr' : '1fr 1fr',
+            }}>
+              {/* Local Video Feed */}
+              <VideoFeed
+                stream={localStream}
+                isLocal={true}
+                username={user?.username}
+                avatar={user?.avatar}
+                isMuted={isMuted}
+                isVideoOff={isVideoOff}
+              />
+
+              {/* Remote Video Feeds */}
+              {peers.map((peer) => (
+                <VideoFeed
+                  key={peer.socketId}
+                  stream={peer.stream}
+                  isLocal={false}
+                  username={peer.username}
+                  avatar={peer.avatar}
+                  isMuted={peer.isMuted}
+                  isVideoOff={peer.isVideoOff}
+                />
+              ))}
+            </div>
+
+            {/* Call Control Strip */}
+            <div style={styles.callControlsStrip}>
+              <button
+                onClick={toggleMute}
+                style={{
+                  ...styles.callControlBtn,
+                  background: isMuted ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                  borderColor: isMuted ? 'var(--accent-red)' : 'rgba(255, 255, 255, 0.1)',
+                  color: isMuted ? 'var(--accent-red)' : '#ffffff',
+                }}
+                title={isMuted ? "Unmute microphone" : "Mute microphone"}
+              >
+                {isMuted ? <MicOff size={16} /> : <Mic size={16} />}
+              </button>
+
+              <button
+                onClick={toggleVideo}
+                style={{
+                  ...styles.callControlBtn,
+                  background: isVideoOff ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                  borderColor: isVideoOff ? 'var(--accent-red)' : 'rgba(255, 255, 255, 0.1)',
+                  color: isVideoOff ? 'var(--accent-red)' : '#ffffff',
+                }}
+                title={isVideoOff ? "Turn camera on" : "Turn camera off"}
+              >
+                {isVideoOff ? <VideoOff size={16} /> : <Video size={16} />}
+              </button>
+
+              <button
+                onClick={leaveCall}
+                style={{
+                  ...styles.callControlBtn,
+                  background: 'rgba(239, 68, 68, 0.85)',
+                  borderColor: 'rgba(239, 68, 68, 0.9)',
+                  color: '#ffffff',
+                }}
+                title="End call"
+              >
+                <PhoneOff size={16} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <CommandPalette
         isOpen={showCommandPalette}
         onClose={() => setShowCommandPalette(false)}
@@ -1477,6 +1656,129 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     transition: "all 0.2s ease",
+  },
+  callCard: {
+    position: 'fixed',
+    zIndex: 100,
+    width: '300px',
+    background: 'rgba(15, 15, 20, 0.75)',
+    backdropFilter: 'blur(20px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    borderRadius: '16px',
+    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+  },
+  callCardHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '12px 14px',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+    background: 'rgba(255, 255, 255, 0.02)',
+  },
+  callCardTitle: {
+    fontSize: '12px',
+    fontWeight: 700,
+    color: 'var(--text-primary)',
+    fontFamily: 'var(--font-display)',
+    letterSpacing: '0.02em',
+  },
+  callCardParticipantsCount: {
+    fontSize: '10px',
+    color: 'var(--text-muted)',
+    fontFamily: 'var(--font-mono)',
+  },
+  videoGrid: {
+    display: 'grid',
+    gap: '8px',
+    padding: '8px',
+    background: 'rgba(0, 0, 0, 0.2)',
+    maxHeight: '340px',
+    overflowY: 'auto',
+  },
+  videoBlock: {
+    position: 'relative',
+    aspectRatio: '4/3',
+    background: 'rgba(10, 10, 15, 0.8)',
+    borderRadius: '8px',
+    overflow: 'hidden',
+    border: '1px solid rgba(255, 255, 255, 0.04)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoElement: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+  },
+  videoAvatarWrap: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    width: '100%',
+    height: '100%',
+    background: 'linear-gradient(to bottom, #111118, #07070a)',
+  },
+  videoAvatarPlaceholder: {
+    width: '48px',
+    height: '48px',
+    borderRadius: '50%',
+    background: 'rgba(255, 255, 255, 0.06)',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    color: '#ffffff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '18px',
+    fontWeight: 600,
+  },
+  videoMutedOverlayLabel: {
+    fontSize: '9px',
+    color: 'var(--text-muted)',
+    fontFamily: 'var(--font-mono)',
+  },
+  videoUsernameBadge: {
+    position: 'absolute',
+    bottom: '6px',
+    left: '6px',
+    background: 'rgba(10, 10, 15, 0.75)',
+    backdropFilter: 'blur(4px)',
+    padding: '2px 6px',
+    borderRadius: '4px',
+    fontSize: '9px',
+    color: 'var(--text-primary)',
+    fontWeight: 500,
+    fontFamily: 'var(--font-body)',
+    border: '1px solid rgba(255, 255, 255, 0.05)',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  callControlsStrip: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '12px',
+    padding: '12px',
+    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+    background: 'rgba(255, 255, 255, 0.02)',
+  },
+  callControlBtn: {
+    width: '32px',
+    height: '32px',
+    borderRadius: '50%',
+    border: '1px solid',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
   },
 }
 

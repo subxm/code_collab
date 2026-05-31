@@ -4,6 +4,7 @@ const prisma = require("../prismaClient");
 
 const roomDocs = new Map();
 const roomUsers = new Map();
+const roomCalls = new Map();
 
 const getRandomColor = () => {
   const colors = [
@@ -138,10 +139,73 @@ const initCollaboration = (server) => {
       });
     });
 
+    // ── WebRTC Signaling ────────────────────────────
+    socket.on("join-call", ({ roomId, username, avatar }) => {
+      if (!roomCalls.has(roomId)) {
+        roomCalls.set(roomId, new Map());
+      }
+      const callUsers = roomCalls.get(roomId);
+      callUsers.set(socket.id, { socketId: socket.id, username, avatar });
+
+      const otherUsers = Array.from(callUsers.values()).filter(u => u.socketId !== socket.id);
+      
+      // Reply to joining peer with list of existing users in the call
+      socket.emit("call-users", otherUsers);
+
+      // Broadcast to other peers in the room that a new user has joined the call
+      socket.to(roomId).emit("user-joined-call", {
+        socketId: socket.id,
+        username,
+        avatar,
+      });
+
+      console.log(`📞 User ${username} (${socket.id}) joined call in room ${roomId}`);
+    });
+
+    socket.on("webrtc-signal", ({ to, signal }) => {
+      io.to(to).emit("webrtc-signal", {
+        from: socket.id,
+        signal,
+      });
+    });
+
+    socket.on("call-status-update", ({ roomId, isMuted, isVideoOff }) => {
+      socket.to(roomId).emit("call-status-update", {
+        socketId: socket.id,
+        isMuted,
+        isVideoOff,
+      });
+    });
+
+    socket.on("leave-call", ({ roomId }) => {
+      const callUsers = roomCalls.get(roomId);
+      if (callUsers && callUsers.has(socket.id)) {
+        const user = callUsers.get(socket.id);
+        callUsers.delete(socket.id);
+        socket.to(roomId).emit("user-left-call", { socketId: socket.id, username: user.username });
+        console.log(`📞 User ${user.username} left call in room ${roomId}`);
+        if (callUsers.size === 0) {
+          roomCalls.delete(roomId);
+        }
+      }
+    });
+
     // ── Disconnect ─────────────────────────────────
     socket.on("disconnecting", () => {
       socket.rooms.forEach((roomId) => {
         if (roomId === socket.id) return;
+
+        // Clean up from calls
+        const callUsers = roomCalls.get(roomId);
+        if (callUsers && callUsers.has(socket.id)) {
+          const user = callUsers.get(socket.id);
+          callUsers.delete(socket.id);
+          socket.to(roomId).emit("user-left-call", { socketId: socket.id, username: user.username });
+          console.log(`📞 User ${user.username} disconnected from call in room ${roomId}`);
+          if (callUsers.size === 0) {
+            roomCalls.delete(roomId);
+          }
+        }
 
         const users = roomUsers.get(roomId);
         if (!users) return;
