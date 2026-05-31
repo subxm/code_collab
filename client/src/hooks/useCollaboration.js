@@ -54,23 +54,25 @@ const useCollaboration = (roomId, username, avatar) => {
 
     // Sync initial state
     socket.on("sync-state", (stateVector) => {
-      Y.applyUpdate(ydoc, new Uint8Array(stateVector));
+      Y.applyUpdate(ydoc, new Uint8Array(stateVector), "socket");
     });
 
     // Receive code updates
     socket.on("code-update", ({ update, username: editorUsername }) => {
-      Y.applyUpdate(ydoc, new Uint8Array(update));
+      Y.applyUpdate(ydoc, new Uint8Array(update), "socket");
       if (editorUsername) {
         setLastEditedBy({ username: editorUsername, timestamp: new Date() });
       }
     });
 
     // Send our changes
-    ydoc.on("update", (update) => {
-      socket.emit("code-update", {
-        roomId,
-        update: Array.from(update),
-      });
+    ydoc.on("update", (update, origin) => {
+      if (origin !== "socket") {
+        socket.emit("code-update", {
+          roomId,
+          update: Array.from(update),
+        });
+      }
     });
 
     // Users list — this is what populates the online counter
@@ -95,6 +97,11 @@ const useCollaboration = (roomId, username, avatar) => {
       setMessages((prev) => [...prev, msg]);
     });
 
+    // Initial messages
+    socket.on("initial-messages", (initialMsgs) => {
+      setMessages(initialMsgs);
+    });
+
     // User left
     socket.on("user-left", ({ username }) => {
       console.log(`👋 ${username} left`);
@@ -111,9 +118,21 @@ const useCollaboration = (roomId, username, avatar) => {
   }, [roomId, username, avatar]);
 
   // Bind Yjs to Monaco editor
-  const bindEditor = (editor) => {
-    if (!ydocRef.current || !editor) return;
-    const ytext = ydocRef.current.getText("code");
+  const bindEditor = (editor, fileId, initialContent) => {
+    if (!ydocRef.current || !editor || !fileId) return;
+
+    if (bindingRef.current) {
+      bindingRef.current.destroy();
+      bindingRef.current = null;
+    }
+
+    const ytext = ydocRef.current.getText(fileId);
+    if (ytext.toString() === "" && initialContent) {
+      ydocRef.current.transact(() => {
+        ytext.insert(0, initialContent);
+      }, "initial");
+    }
+
     const binding = new MonacoBinding(
       ytext,
       editor.getModel(),
@@ -124,7 +143,7 @@ const useCollaboration = (roomId, username, avatar) => {
 
   const sendMessage = (message) => {
     if (!socketRef.current) return;
-    socketRef.current.emit("chat-message", { roomId, message, username });
+    socketRef.current.emit("chat-message", { roomId, message, username, avatar });
   };
 
   const changeLanguage = (newLanguage) => {

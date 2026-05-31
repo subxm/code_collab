@@ -381,21 +381,13 @@ const EditorRoom = () => {
       }
     })
 
-    bindEditor(editor)
-
-    // Set initial content from active file
-    if (activeFile?.content) {
-      editor.setValue(activeFile.content)
-    }
+    bindEditor(editor, activeFile?.id, activeFile?.content)
   }
 
   // ── Sync editor when active file changes ─────────────
   useEffect(() => {
     if (editorRef.current && activeFile) {
-      const currentContent = editorRef.current.getValue()
-      if (currentContent !== activeFile.content) {
-        editorRef.current.setValue(activeFile.content || '')
-      }
+      bindEditor(editorRef.current, activeFile.id, activeFile.content)
       setLanguage(activeFile.language || 'javascript')
       // Add to open tabs if not already there
       setOpenTabs(prev => {
@@ -667,7 +659,6 @@ const EditorRoom = () => {
     contextmenu: false,
     scrollbar: { verticalScrollbarSize: 4, horizontalScrollbarSize: 4 },
     renderLineHighlight: 'line',
-    theme: 'vs-dark',
   }
 
   // Command palette state
@@ -1450,9 +1441,9 @@ const EditorRoom = () => {
                         {isMe && (
                           <span style={{
                             padding: "1px 4px",
-                            background: "rgba(99, 102, 241, 0.15)",
-                            border: "1px solid rgba(99, 102, 241, 0.3)",
-                            color: "#818cf8",
+                            background: "rgba(255, 255, 255, 0.06)",
+                            border: "1px solid rgba(255, 255, 255, 0.15)",
+                            color: "#ffffff",
                             fontSize: "9px",
                             fontFamily: "var(--font-mono)",
                             borderRadius: "4px",
@@ -1466,9 +1457,9 @@ const EditorRoom = () => {
                         {isHost ? (
                           <span style={{
                             padding: "1px 5px",
-                            background: "rgba(16, 185, 129, 0.15)",
-                            border: "1px solid rgba(16, 185, 129, 0.3)",
-                            color: "#10b981",
+                            background: "rgba(255, 255, 255, 0.08)",
+                            border: "1px solid rgba(255, 255, 255, 0.2)",
+                            color: "#ffffff",
                             fontSize: "9px",
                             fontFamily: "var(--font-mono)",
                             borderRadius: "4px",
@@ -1477,9 +1468,9 @@ const EditorRoom = () => {
                         ) : (
                           <span style={{
                             padding: "1px 5px",
-                            background: "rgba(6, 182, 212, 0.1)",
-                            border: "1px solid rgba(6, 182, 212, 0.25)",
-                            color: "#22d3ee",
+                            background: "rgba(255, 255, 255, 0.03)",
+                            border: "1px solid rgba(255, 255, 255, 0.1)",
+                            color: "rgba(255, 255, 255, 0.7)",
                             fontSize: "9px",
                             fontFamily: "var(--font-mono)",
                             borderRadius: "4px",

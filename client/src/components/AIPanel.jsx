@@ -277,10 +277,12 @@ const RoomChatMessage = ({ msg, currentUser, senderAvatar, senderColor }) => {
             paddingRight: isMe ? 4 : 0,
           }}
         >
-          {new Date(msg.timestamp).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
+          {(() => {
+            const date = new Date(msg.timestamp);
+            const dateStr = date.toLocaleDateString([], { month: "short", day: "numeric" });
+            const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            return `${dateStr}, ${timeStr}`;
+          })()}
         </span>
       </div>
     </motion.div>

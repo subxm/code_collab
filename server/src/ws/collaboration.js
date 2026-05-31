@@ -78,6 +78,18 @@ const initCollaboration = (server) => {
         const activeUsers = callUsers ? Array.from(callUsers.values()) : [];
         socket.emit("active-call-users", activeUsers);
 
+        // Fetch and send all previous chat messages for this room
+        const messages = await prisma.message.findMany({
+          where: { roomId },
+          orderBy: { timestamp: "asc" },
+        });
+        socket.emit("initial-messages", messages.map(msg => ({
+          username: msg.username,
+          message: msg.text,
+          avatar: msg.avatar,
+          timestamp: msg.timestamp.toISOString(),
+        })));
+
         console.log(
           `👤 ${username} joined room ${roomId} — ${usersInRoom.length} online`,
         );
@@ -136,12 +148,25 @@ const initCollaboration = (server) => {
     });
 
     // ── Chat Message ───────────────────────────────
-    socket.on("chat-message", ({ roomId, message, username }) => {
-      io.to(roomId).emit("chat-message", {
-        username,
-        message,
-        timestamp: new Date().toISOString(),
-      });
+    socket.on("chat-message", async ({ roomId, message, username, avatar }) => {
+      try {
+        const newMessage = await prisma.message.create({
+          data: {
+            roomId,
+            text: message,
+            username,
+            avatar: avatar || null,
+          }
+        });
+        io.to(roomId).emit("chat-message", {
+          username: newMessage.username,
+          message: newMessage.text,
+          avatar: newMessage.avatar,
+          timestamp: newMessage.timestamp.toISOString(),
+        });
+      } catch (error) {
+        console.error("chat-message error:", error);
+      }
     });
 
     // ── WebRTC Signaling ────────────────────────────
