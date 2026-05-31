@@ -167,6 +167,35 @@ const EditorRoom = () => {
   } = useWebRTC(socketRef.current, roomId, user?.username, user?.avatar)
 
   const callDragControls = useDragControls()
+  const [callWidth, setCallWidth] = useState(480)
+  const [callHeight, setCallHeight] = useState(360)
+
+  const handleCallResizeMouseDown = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const startWidth = callWidth;
+    const startHeight = callHeight;
+    const startX = e.clientX;
+    const startY = e.clientY;
+
+    const handleMouseMove = (moveEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaY = moveEvent.clientY - startY;
+      
+      setCallWidth(Math.max(320, Math.min(1200, startWidth + deltaX)));
+      setCallHeight(Math.max(240, Math.min(900, startHeight + deltaY)));
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [callWidth, callHeight]);
+
 
   const {
     output, isRunning, error: execError,
@@ -1289,7 +1318,9 @@ const EditorRoom = () => {
             style={{
               ...styles.callCard,
               top: 70,
-              right: rightPanel === "ai" ? rightPanelWidth + 30 : 30
+              right: rightPanel === "ai" ? rightPanelWidth + 30 : 30,
+              width: `${callWidth}px`,
+              height: `${callHeight}px`
             }}
             drag
             dragControls={callDragControls}
@@ -1313,7 +1344,10 @@ const EditorRoom = () => {
             {/* Video Streams Grid */}
             <div style={{
               ...styles.videoGrid,
-              gridTemplateColumns: (peers.length + 1) === 1 ? '1fr' : '1fr 1fr',
+              gridTemplateColumns: (peers.length + 1) === 1 ? '1fr' : 
+                                   (peers.length + 1) === 2 ? '1fr 1fr' :
+                                   (peers.length + 1) <= 4 ? '1fr 1fr' :
+                                   (peers.length + 1) <= 9 ? '1fr 1fr 1fr' : '1fr 1fr 1fr 1fr',
             }}>
               {/* Local Video Feed */}
               <VideoFeed
@@ -1379,6 +1413,18 @@ const EditorRoom = () => {
               >
                 <PhoneOff size={16} />
               </button>
+            </div>
+
+            {/* Custom Resizer handle */}
+            <div 
+              style={styles.callResizeHandle}
+              onMouseDown={handleCallResizeMouseDown}
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" style={{ opacity: 0.5, pointerEvents: 'none', display: 'block' }}>
+                <line x1="10" y1="0" x2="0" y2="10" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" />
+                <line x1="10" y1="4" x2="4" y2="10" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" />
+                <line x1="10" y1="8" x2="8" y2="10" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" />
+              </svg>
             </div>
           </motion.div>
         )}
@@ -1688,7 +1734,6 @@ const styles = {
   callCard: {
     position: 'fixed',
     zIndex: 100,
-    width: '300px',
     background: 'rgba(15, 15, 20, 0.75)',
     backdropFilter: 'blur(20px) saturate(180%)',
     WebkitBackdropFilter: 'blur(20px) saturate(180%)',
@@ -1727,7 +1772,7 @@ const styles = {
     gap: '8px',
     padding: '8px',
     background: 'rgba(0, 0, 0, 0.2)',
-    maxHeight: '340px',
+    flex: 1,
     overflowY: 'auto',
   },
   videoBlock: {
@@ -1827,6 +1872,19 @@ const styles = {
     justifyContent: 'center',
     cursor: 'pointer',
     transition: 'all 0.15s ease',
+  },
+  callResizeHandle: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 14,
+    height: 14,
+    cursor: 'se-resize',
+    zIndex: 110,
+    display: 'flex',
+    alignItems: 'flex-end',
+    justifyContent: 'flex-end',
+    padding: '3px',
   },
 }
 
