@@ -18,7 +18,8 @@ import {
   Code2, Play, Users, ChevronDown,
   Copy, Check, Brain, Terminal,
   ArrowLeft, Save, Loader2, X, Eye, FileCode2,
-  Phone, PhoneOff, Video, VideoOff, Mic, MicOff, RefreshCw
+  Phone, PhoneOff, Video, VideoOff, Mic, MicOff, RefreshCw,
+  Palette, Download
 } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import Logo from '../components/Logo'
@@ -57,7 +58,7 @@ const CopyButton = ({ text }) => {
 // ── Video Feed Component ─────────────────────────────────
 const VideoFeed = ({ stream, isLocal, username, avatar, isMuted, isVideoOff, onDoubleClick, style }) => {
   const videoRef = useRef(null);
-  const [isMirrored, setIsMirrored] = useState(false);
+  const [isMirrored, setIsMirrored] = useState(isLocal ? true : false);
 
   useEffect(() => {
     if (videoRef.current && stream && !isVideoOff) {
@@ -125,7 +126,6 @@ const EditorRoom = () => {
   const [files,        setFiles]        = useState([])
   const [activeFile,   setActiveFile]   = useState(null)
   const [language,     setLanguage]     = useState('javascript')
-  const [showLangDrop, setShowLangDrop] = useState(false)
   const [showThemeDrop, setShowThemeDrop] = useState(false)
   const [bottomPanel,  setBottomPanel]  = useState('terminal')
   const [rightPanel,   setRightPanel]   = useState('ai')
@@ -604,7 +604,6 @@ const EditorRoom = () => {
   const handleLanguageChange = (lang) => {
     setLanguage(lang)
     changeLanguage(lang)
-    setShowLangDrop(false)
   }
 
   // ── Save active file content ───────────────────────────
@@ -871,55 +870,31 @@ const EditorRoom = () => {
 
         </div>
 
-        {/* Center — Language picker, Theme picker & Run Button */}
+        {/* Center — Save, Run & Preview Buttons */}
         <div style={styles.toolbarCenter}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* Theme Dropdown */}
-            <div style={styles.langDropWrap}>
-              <button
-                onClick={() => setShowThemeDrop((p) => !p)}
-                style={styles.langDropBtn}
-                title="Select Code Editor Theme"
-              >
-                {EDITOR_THEMES.find(t => t.id === editorTheme)?.label || editorTheme}
-                <ChevronDown size={12} />
-              </button>
-              <AnimatePresence>
-                {showThemeDrop && (
-                  <motion.div
-                    style={styles.langDropMenu}
-                    initial={{ opacity: 0, y: -8, scaleY: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scaleY: 1 }}
-                    exit={{ opacity: 0, y: -8, scaleY: 0.9 }}
-                    transition={{ duration: 0.15 }}
-                  >
-                    {EDITOR_THEMES.map((themeOption) => (
-                      <button
-                        key={themeOption.id}
-                        onClick={() => {
-                          setEditorTheme(themeOption.id);
-                          setShowThemeDrop(false);
-                          toast.success(`Theme set to ${themeOption.label}`);
-                        }}
-                        style={{
-                          ...styles.langOption,
-                          color:
-                            themeOption.id === editorTheme
-                              ? "var(--accent-cyan)"
-                              : "var(--text-secondary)",
-                          background:
-                            themeOption.id === editorTheme
-                              ? "rgba(255,255,255,0.08)"
-                              : "transparent",
-                        }}
-                      >
-                        {themeOption.label}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 14px', fontSize: '13px',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: 30, color: 'var(--text-primary)',
+                cursor: 'pointer', fontWeight: 600,
+                fontFamily: 'var(--font-body)',
+                transition: 'all 0.2s ease',
+              }}
+              title="Save File (Ctrl+S)"
+            >
+              {saving ? (
+                <Loader2 size={13} className="animate-spin" style={{ animation: 'spin 0.8s linear infinite' }} />
+              ) : (
+                <Save size={13} />
+              )}
+              Save
+            </button>
 
             <button
               className="btn run-btn-gradient"
@@ -959,47 +934,6 @@ const EditorRoom = () => {
                 Preview
               </button>
             )}
-
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 14px', fontSize: '13px',
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                borderRadius: 30, color: 'var(--text-primary)',
-                cursor: 'pointer', fontWeight: 600,
-                fontFamily: 'var(--font-body)',
-                transition: 'all 0.2s ease',
-              }}
-              title="Save File (Ctrl+S)"
-            >
-              {saving ? (
-                <Loader2 size={13} className="animate-spin" style={{ animation: 'spin 0.8s linear infinite' }} />
-              ) : (
-                <Save size={13} />
-              )}
-              Save
-            </button>
-
-            <button
-              onClick={handleDownloadZIP}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 14px', fontSize: '13px',
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                borderRadius: 30, color: 'var(--text-primary)',
-                cursor: 'pointer', fontWeight: 600,
-                fontFamily: 'var(--font-body)',
-                transition: 'all 0.2s ease',
-              }}
-              title="Export Project as ZIP"
-            >
-              <FileCode2 size={13} />
-              Export
-            </button>
           </div>
         </div>
 
@@ -1102,6 +1036,67 @@ const EditorRoom = () => {
             )}
           </button>
 
+          {/* Theme Paint Button & Popover Dropdown */}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <button
+              onClick={() => setShowThemeDrop((p) => !p)}
+              className="top-right-tool-btn"
+              style={{
+                marginLeft: 8,
+                background: showThemeDrop ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+                borderColor: showThemeDrop ? 'rgba(255, 255, 255, 0.35)' : 'rgba(255, 255, 255, 0.15)',
+                color: showThemeDrop ? 'var(--accent-cyan)' : '#ffffff',
+              }}
+              title="Select Code Editor Theme"
+            >
+              <Palette size={14} />
+            </button>
+            <AnimatePresence>
+              {showThemeDrop && (
+                <motion.div
+                  style={{
+                    position: 'absolute', top: '115%', right: 0,
+                    background: 'rgba(20, 20, 26, 0.98)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: 8, overflow: 'hidden',
+                    minWidth: 140, zIndex: 100,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                    transformOrigin: 'top right',
+                  }}
+                  initial={{ opacity: 0, y: -8, scaleY: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scaleY: 1 }}
+                  exit={{ opacity: 0, y: -8, scaleY: 0.9 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  {EDITOR_THEMES.map((themeOption) => (
+                    <button
+                      key={themeOption.id}
+                      onClick={() => {
+                        setEditorTheme(themeOption.id);
+                        setShowThemeDrop(false);
+                        toast.success(`Theme set to ${themeOption.label}`);
+                      }}
+                      style={{
+                        ...styles.langOption,
+                        color:
+                          themeOption.id === editorTheme
+                            ? "var(--accent-cyan)"
+                            : "var(--text-secondary)",
+                        background:
+                          themeOption.id === editorTheme
+                            ? "rgba(255,255,255,0.08)"
+                            : "transparent",
+                      }}
+                    >
+                      {themeOption.label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           <div style={styles.toolbarDivider} />
 
           {/* Panel toggles */}
@@ -1155,13 +1150,16 @@ const EditorRoom = () => {
             </span>
           )}
 
-                  {/* Export */}
+          {/* Export */}
           <button
             onClick={handleDownloadZIP}
-            style={{ ...styles.iconBtn }}
+            className="top-right-tool-btn"
+            style={{
+              marginLeft: 4,
+            }}
             title="Export Project as ZIP"
           >
-            <FileCode2 size={15} color="var(--text-muted)" />
+            <Download size={14} />
           </button>
         </div>
       </div>
@@ -1303,11 +1301,19 @@ const EditorRoom = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            style={styles.peoplePopover}
+            style={{
+              ...styles.peoplePopover,
+              background: 'rgba(18, 18, 24, 0.98)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              boxShadow: '0 16px 48px rgba(0, 0, 0, 0.8)',
+            }}
           >
             {/* Header */}
-            <div style={styles.peoplePopoverHeader}>
-              <span style={{ fontSize: "13px", fontWeight: 700, display: "flex", alignItems: "center", gap: 6, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
+            <div style={{
+              ...styles.peoplePopoverHeader,
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            }}>
+              <span style={{ fontSize: "13px", fontWeight: 700, display: "flex", alignItems: "center", gap: 6, color: '#ffffff', fontFamily: 'var(--font-display)' }}>
                 <Users size={14} color="var(--accent-green)" /> Members ({users.length})
               </span>
               <button onClick={() => setShowPeople(false)} style={styles.popoverClose} title="Close">
@@ -1316,13 +1322,64 @@ const EditorRoom = () => {
             </div>
 
             {/* Invite Section */}
-            <div style={styles.popoverInvite}>
-              <span style={styles.popoverInviteTitle}>Invite Link</span>
-              <div style={styles.popoverInviteRow}>
-                <span style={styles.popoverInviteUrl}>{window.location.href}</span>
-                <button onClick={handleCopyInvite} style={styles.popoverInviteBtn}>
-                  {copiedInvite ? <Check size={11} color="var(--accent-green)" /> : <Copy size={11} />}
-                  {copiedInvite ? "Copied" : "Copy"}
+            <div style={{
+              padding: '14px 16px',
+              background: 'rgba(255, 255, 255, 0.02)',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}>
+              <span style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: 'var(--accent-cyan)',
+                textTransform: 'uppercase',
+                fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.05em',
+              }}>Invite Link</span>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+                background: 'rgba(0, 0, 0, 0.25)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '6px',
+                padding: '4px 6px 4px 10px',
+              }}>
+                <span style={{
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  color: 'rgba(255, 255, 255, 0.85)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1,
+                  marginRight: 4,
+                }}>{window.location.href}</span>
+                <button 
+                  onClick={handleCopyInvite} 
+                  style={{
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    background: copiedInvite ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+                    border: copiedInvite ? '1px solid var(--accent-green)' : '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '4px',
+                    color: copiedInvite ? 'var(--accent-green)' : '#ffffff',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    fontWeight: 600,
+                    width: 'auto',
+                    height: '24px',
+                    boxShadow: 'none',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  {copiedInvite ? <Check size={10} /> : <Copy size={10} />}
+                  <span>{copiedInvite ? "Copied" : "Copy"}</span>
                 </button>
               </div>
             </div>
@@ -1334,39 +1391,101 @@ const EditorRoom = () => {
                 const isHost = i === 0;
 
                 return (
-                  <div key={i} style={styles.peoplePopoverItem}>
+                  <div key={i} style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "10px 12px",
+                    borderRadius: "8px",
+                    background: "rgba(255, 255, 255, 0.03)",
+                    border: "1px solid rgba(255, 255, 255, 0.06)",
+                    transition: "all 0.2s ease",
+                  }}>
                     <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                       {u.avatar ? (
-                        renderAvatar(u.avatar, u.username, 26)
+                        renderAvatar(u.avatar, u.username, 28)
                       ) : (
                         <div
                           style={{
-                            width: 26,
-                            height: 26,
+                            width: 28,
+                            height: 28,
                             borderRadius: "50%",
                             background: u.color || "var(--accent-cyan)",
                             color: "#fff",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            fontSize: "10px",
+                            fontSize: "11px",
                             fontWeight: 700,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
                           }}
                         >
                           {u.username?.[0]?.toUpperCase()}
                         </div>
                       )}
-                      <span style={styles.peopleStatusDot} />
+                      <span style={{
+                        position: "absolute",
+                        bottom: -1,
+                        right: -1,
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: "var(--accent-green)",
+                        border: "2px solid rgba(18, 18, 24, 1)",
+                      }} />
                     </div>
 
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-                      <span style={styles.peopleName}>
+                      <span style={{
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        color: "#ffffff",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        display: "flex",
+                        alignItems: "center",
+                      }}>
                         {u.username}
-                        {isMe && <span style={{ color: "var(--text-muted)", fontSize: "10px" }}> (you)</span>}
+                        {isMe && (
+                          <span style={{
+                            padding: "1px 4px",
+                            background: "rgba(99, 102, 241, 0.15)",
+                            border: "1px solid rgba(99, 102, 241, 0.3)",
+                            color: "#818cf8",
+                            fontSize: "9px",
+                            fontFamily: "var(--font-mono)",
+                            borderRadius: "4px",
+                            marginLeft: 6,
+                            textTransform: "uppercase",
+                            fontWeight: 700,
+                          }}>you</span>
+                        )}
                       </span>
-                      <div style={{ display: "flex", gap: 4, marginTop: 2 }}>
-                        {isHost && <span style={styles.hostBadge}>Host</span>}
-                        <span style={styles.roleBadge}>Contributor</span>
+                      <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                        {isHost ? (
+                          <span style={{
+                            padding: "1px 5px",
+                            background: "rgba(16, 185, 129, 0.15)",
+                            border: "1px solid rgba(16, 185, 129, 0.3)",
+                            color: "#10b981",
+                            fontSize: "9px",
+                            fontFamily: "var(--font-mono)",
+                            borderRadius: "4px",
+                            fontWeight: 700,
+                          }}>Host</span>
+                        ) : (
+                          <span style={{
+                            padding: "1px 5px",
+                            background: "rgba(6, 182, 212, 0.1)",
+                            border: "1px solid rgba(6, 182, 212, 0.25)",
+                            color: "#22d3ee",
+                            fontSize: "9px",
+                            fontFamily: "var(--font-mono)",
+                            borderRadius: "4px",
+                            fontWeight: 700,
+                          }}>Contributor</span>
+                        )}
                       </div>
                     </div>
                   </div>

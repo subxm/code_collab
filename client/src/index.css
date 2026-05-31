@@ -1424,4 +1424,31 @@ a:hover {
   line-height: 1.55;
   color: #abb2bf;
   font-family: var(--font-mono);
+}
+
+/* ── Top-Right Tool Buttons ── */
+.top-right-tool-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.top-right-tool-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.05);
+}
+
+.top-right-tool-btn:active {
+  transform: scale(0.98);
 }
