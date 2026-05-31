@@ -57,7 +57,7 @@ const CopyButton = ({ text }) => {
 // ── Video Feed Component ─────────────────────────────────
 const VideoFeed = ({ stream, isLocal, username, avatar, isMuted, isVideoOff, onDoubleClick, style }) => {
   const videoRef = useRef(null);
-  const [isMirrored, setIsMirrored] = useState(isLocal);
+  const [isMirrored, setIsMirrored] = useState(false);
 
   useEffect(() => {
     if (videoRef.current && stream && !isVideoOff) {
@@ -193,6 +193,18 @@ const EditorRoom = () => {
   const callDragControls = useDragControls()
   const [callWidth, setCallWidth] = useState(480)
   const [callHeight, setCallHeight] = useState(360)
+
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const defaultLeft = useMemo(() => {
+    return windowWidth - callWidth - (rightPanel === "ai" ? rightPanelWidth + 30 : 30);
+  }, [windowWidth, rightPanel, rightPanelWidth, callWidth]);
 
   const handleCallResizeMouseDown = useCallback((e) => {
     e.preventDefault();
@@ -595,23 +607,24 @@ const EditorRoom = () => {
     setShowLangDrop(false)
   }
 
-  // ── Save snapshot ──────────────────────────────────────
+  // ── Save active file content ───────────────────────────
   const handleSave = async () => {
-    const code = getCode()
-    try {
-      setSaving(true)
-      await axios.post(
-        `${API_URL}/api/rooms/${roomId}/snapshot`,
-        { code },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      toast.success('Snapshot saved!')
-    } catch {
-      toast.error('Save failed')
-    } finally {
-      setSaving(false)
+    if (!activeFile) {
+      toast.error('No active file to save!');
+      return;
     }
-  }
+    const content = getCode();
+    try {
+      setSaving(true);
+      await saveFileContent(activeFile.id, content);
+      toast.success('File saved successfully!');
+    } catch (err) {
+      console.error('Failed to save file:', err);
+      toast.error('Failed to save file');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // ── Apply AI fix ───────────────────────────────────────
   const handleApplyFix = (fixedCode) => {
@@ -727,7 +740,7 @@ const EditorRoom = () => {
   const commandActions = useMemo(() => {
     const actions = [
       { id: 'run', label: 'Run Code', icon: <Play size={14} />, shortcut: 'Ctrl+Enter', action: handleRun, category: 'Editor' },
-      { id: 'save', label: 'Save Snapshot', icon: <Save size={14} />, shortcut: 'Ctrl+S', action: handleSave, category: 'Editor' },
+      { id: 'save', label: 'Save File', icon: <Save size={14} />, shortcut: 'Ctrl+S', action: handleSave, category: 'Editor' },
       { id: 'zip', label: 'Download as ZIP', icon: <FileCode2 size={14} />, action: handleDownloadZIP, category: 'File' },
       ...(isWebDev ? [{ id: 'preview', label: 'Open Preview', icon: <Eye size={14} />, action: () => setShowPreview(true), category: 'View' }] : []),
       { id: 'terminal', label: 'Toggle Terminal', icon: <Terminal size={14} />, action: () => setBottomPanel(p => p === 'terminal' ? 'hidden' : 'terminal'), category: 'View' },
@@ -849,7 +862,9 @@ const EditorRoom = () => {
           <span style={styles.roomName}>{room.name}</span>
 
           <div style={styles.roomIdWrap}>
-            <span style={styles.roomIdText}>{roomId}</span>
+            <span style={styles.roomIdText}>
+              {roomId.length > 10 ? `${roomId.slice(0, 6)}...${roomId.slice(-4)}` : roomId}
+            </span>
             <CopyButton text={roomId} />
           </div>
 
@@ -944,6 +959,47 @@ const EditorRoom = () => {
                 Preview
               </button>
             )}
+
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 14px', fontSize: '13px',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: 30, color: 'var(--text-primary)',
+                cursor: 'pointer', fontWeight: 600,
+                fontFamily: 'var(--font-body)',
+                transition: 'all 0.2s ease',
+              }}
+              title="Save File (Ctrl+S)"
+            >
+              {saving ? (
+                <Loader2 size={13} className="animate-spin" style={{ animation: 'spin 0.8s linear infinite' }} />
+              ) : (
+                <Save size={13} />
+              )}
+              Save
+            </button>
+
+            <button
+              onClick={handleDownloadZIP}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 14px', fontSize: '13px',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: 30, color: 'var(--text-primary)',
+                cursor: 'pointer', fontWeight: 600,
+                fontFamily: 'var(--font-body)',
+                transition: 'all 0.2s ease',
+              }}
+              title="Export Project as ZIP"
+            >
+              <FileCode2 size={13} />
+              Export
+            </button>
           </div>
         </div>
 
@@ -1099,18 +1155,13 @@ const EditorRoom = () => {
             </span>
           )}
 
-          {/* Save */}
+                  {/* Export */}
           <button
-            onClick={handleSave}
-            disabled={saving}
+            onClick={handleDownloadZIP}
             style={{ ...styles.iconBtn }}
-            title="Save Snapshot (Ctrl+S)"
+            title="Export Project as ZIP"
           >
-            {saving ? (
-              <Loader2 size={15} color="var(--accent-cyan)" style={{ animation: 'spin 0.7s linear infinite' }} />
-            ) : (
-              <Save size={15} color="var(--text-muted)" />
-            )}
+            <FileCode2 size={15} color="var(--text-muted)" />
           </button>
         </div>
       </div>
@@ -1373,7 +1424,7 @@ const EditorRoom = () => {
             style={{
               ...styles.callCard,
               top: 70,
-              right: rightPanel === "ai" ? rightPanelWidth + 30 : 30,
+              left: defaultLeft,
               width: `${callWidth}px`,
               height: `${callHeight}px`
             }}

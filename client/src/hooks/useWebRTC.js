@@ -95,7 +95,7 @@ export const useWebRTC = (socket, roomId, username, avatar) => {
     return pc;
   }, [socket, cleanupPeer]);
 
-  const joinCall = async () => {
+  const joinCall = useCallback(async () => {
     if (!socket || !roomId) {
       toast.error("Socket not connected or Room ID missing");
       return;
@@ -118,11 +118,13 @@ export const useWebRTC = (socket, roomId, username, avatar) => {
       socket.emit("join-call", { roomId, username, avatar });
       socket.emit("call-status-update", { roomId, isMuted: false, isVideoOff: false });
       toast.success("Joined voice/video call");
+      sessionStorage.setItem(`in_call_${roomId}`, "true");
     } catch (error) {
       console.error("Error accessing camera/mic:", error);
       toast.error("Could not access camera or microphone. Please grant permissions.");
+      sessionStorage.removeItem(`in_call_${roomId}`);
     }
-  };
+  }, [socket, roomId, username, avatar]);
 
   const leaveCall = useCallback(() => {
     if (socket) {
@@ -147,7 +149,18 @@ export const useWebRTC = (socket, roomId, username, avatar) => {
     setIsVideoOff(false);
     callUsersMetaRef.current = {};
     toast.success("Left the call");
+    sessionStorage.removeItem(`in_call_${roomId}`);
   }, [socket, roomId, cleanupPeer]);
+
+  // Auto-rejoin call on page refresh
+  useEffect(() => {
+    if (socket && roomId && sessionStorage.getItem(`in_call_${roomId}`) === "true" && !inCall) {
+      const timer = setTimeout(() => {
+        joinCall();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [socket, roomId, joinCall, inCall]);
 
   const toggleMute = () => {
     if (localStreamRef.current) {
