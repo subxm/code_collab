@@ -123,7 +123,7 @@ sequenceDiagram
     ClientBob->>Server: Emit "webrtc-signal" (Answer SDP) to Alice
     Server->>ClientAlice: Forward "webrtc-signal" (Answer SDP)
     Note over ClientAlice, ClientBob: Peer-to-Peer connection established via STUN
-    ClientAlice<-->>ClientBob: Direct P2P Video/Audio stream exchange
+    ClientAlice-->>ClientBob: Direct P2P Video/Audio stream exchange
 ```
 
 ### 4. Real-time Darkboard Sync Flow
