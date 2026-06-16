@@ -517,7 +517,7 @@ const LandingPage = () => {
             <Logo size={22} style={{ marginRight: 6 }} />
             <span style={styles.logoText}>CodeCollab</span>
           </div>
-          <div style={styles.navLinks}>
+          <div className="nav-links" style={styles.navLinks}>
             <a href="#features" className="nav-link" style={styles.navLink}>
               Features
             </a>
@@ -834,12 +834,15 @@ const styles = {
     borderBottom: "1px solid var(--border)",
   },
   navInner: {
+    maxWidth: 1200,
     width: "100%",
-    padding: "0 40px",
+    margin: "0 auto",
+    padding: "0 24px",
     height: 64,
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
+    position: "relative",
   },
   logo: { display: "flex", alignItems: "center", gap: 10, cursor: "pointer" },
   logoLink: { display: "flex", alignItems: "center", gap: 10, textDecoration: "none", cursor: "pointer" },
@@ -849,7 +852,13 @@ const styles = {
     fontSize: "18px",
     color: "var(--text-primary)",
   },
-  navLinks: { display: "flex", gap: 32 },
+  navLinks: {
+    position: "absolute",
+    left: "50%",
+    transform: "translateX(-50%)",
+    display: "flex",
+    gap: 32,
+  },
   navLink: {
     color: "var(--text-primary)",
     fontSize: "15px",

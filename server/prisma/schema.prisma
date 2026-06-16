@@ -22,16 +22,17 @@ model User {
 }
 
 model Room {
-  id        String   @id @default(cuid())
-  name      String
-  language  String   @default("javascript")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  ownerId   Int
-  members   RoomMember[]
-  files     File[]
-  snapshots Snapshot[]
-  messages  Message[]
+  id                 String   @id @default(cuid())
+  name               String
+  language           String   @default("javascript")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  ownerId            Int
+  members            RoomMember[]
+  files              File[]
+  snapshots          Snapshot[]
+  messages           Message[]
+  whiteboardElements String?  @default("[]")
 }
 
 model File {

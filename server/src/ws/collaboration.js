@@ -113,11 +113,11 @@ const initCollaboration = (server) => {
 
         socket.to(roomId).emit("code-update", { update, username });
 
-        const currentCode = ydoc.getText("code").toString();
         await prisma.room.update({
           where: { id: roomId },
-          data: { code: currentCode, updatedAt: new Date() },
+          data: { updatedAt: new Date() },
         });
+
       } catch (error) {
         console.error("code-update error:", error);
       }
@@ -135,6 +135,47 @@ const initCollaboration = (server) => {
         color: user.color,
         cursor,
       });
+    });
+
+    // ── Whiteboard Updates ──────────────────────────
+    socket.on("whiteboard-update", ({ roomId, elements }) => {
+      socket.to(roomId).emit("whiteboard-update", { elements });
+    });
+
+    socket.on("whiteboard-save", async ({ roomId, elements }) => {
+      try {
+        await prisma.room.update({
+          where: { id: roomId },
+          data: { whiteboardElements: JSON.stringify(elements) }
+        });
+      } catch (error) {
+        console.error("whiteboard-save error:", error);
+      }
+    });
+
+    socket.on("whiteboard-cursor", ({ roomId, cursor }) => {
+      const users = roomUsers.get(roomId);
+      if (!users) return;
+      const user = users.get(socket.id);
+      if (!user) return;
+      socket.to(roomId).emit("whiteboard-cursor", {
+        socketId: socket.id,
+        username: user.username,
+        color: user.color,
+        cursor
+      });
+    });
+
+    socket.on("whiteboard-clear", async ({ roomId }) => {
+      try {
+        await prisma.room.update({
+          where: { id: roomId },
+          data: { whiteboardElements: "[]" }
+        });
+        socket.to(roomId).emit("whiteboard-clear");
+      } catch (error) {
+        console.error("whiteboard-clear error:", error);
+      }
     });
 
     // ── Language Change ────────────────────────────
@@ -164,6 +205,7 @@ const initCollaboration = (server) => {
           avatar: newMessage.avatar,
           timestamp: newMessage.timestamp.toISOString(),
         });
+
       } catch (error) {
         console.error("chat-message error:", error);
       }

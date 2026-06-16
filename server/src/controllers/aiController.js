@@ -1,6 +1,6 @@
 const Groq = require("groq-sdk");
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "gsk_dummy_dev_key" });
 
 // We use llama-3.3-70b — free, fast, excellent at code
 const MODEL = "llama-3.3-70b-versatile";

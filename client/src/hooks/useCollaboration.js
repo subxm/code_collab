@@ -16,6 +16,7 @@ const useCollaboration = (roomId, username, avatar) => {
   const [isConnected, setIsConnected] = useState(false);
   const [lastEditedBy, setLastEditedBy] = useState(null);
   const [activeCallUsers, setActiveCallUsers] = useState([]);
+  const [remoteCursors, setRemoteCursors] = useState({});
 
   useEffect(() => {
     if (!roomId || !username) return;
@@ -79,12 +80,38 @@ const useCollaboration = (roomId, username, avatar) => {
     socket.on("room-users", (roomUsers) => {
       console.log("👥 Users update:", roomUsers);
       setUsers(roomUsers);
+      // Clean up cursors for users that are no longer in the room
+      const activeSocketIds = new Set(roomUsers.map((u) => u.socketId));
+      setRemoteCursors((prev) => {
+        const next = {};
+        for (const [sid, data] of Object.entries(prev)) {
+          if (activeSocketIds.has(sid)) {
+            next[sid] = data;
+          }
+        }
+        return next;
+      });
     });
 
     // Active call users
     socket.on("active-call-users", (callUsers) => {
       console.log("📞 Active call users update:", callUsers);
       setActiveCallUsers(callUsers);
+    });
+
+    // Remote cursors update
+    socket.on("cursor-update", ({ socketId, username, color, cursor }) => {
+      setRemoteCursors((prev) => {
+        if (!cursor) {
+          const next = { ...prev };
+          delete next[socketId];
+          return next;
+        }
+        return {
+          ...prev,
+          [socketId]: { username, color, cursor },
+        };
+      });
     });
 
     // Language change
@@ -154,6 +181,11 @@ const useCollaboration = (roomId, username, avatar) => {
     });
   };
 
+  const updateCursor = (cursor) => {
+    if (!socketRef.current) return;
+    socketRef.current.emit("cursor-update", { roomId, cursor });
+  };
+
   return {
     users,
     messages,
@@ -166,6 +198,8 @@ const useCollaboration = (roomId, username, avatar) => {
     setLastEditedBy,
     socketRef,
     activeCallUsers,
+    remoteCursors,
+    updateCursor,
   };
 };
 

@@ -10,6 +10,7 @@ import useAI from '../hooks/useAI'
 import TerminalPanel from '../components/TerminalPanel'
 import AIPanel from '../components/AIPanel'
 import FileTree from '../components/FileTree'
+import Whiteboard from '../components/Whiteboard'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import JSZip from 'jszip'
@@ -19,7 +20,7 @@ import {
   Copy, Check, Brain, Terminal,
   ArrowLeft, Save, Loader2, X, Eye, FileCode2,
   Phone, PhoneOff, Video, VideoOff, Mic, MicOff, RefreshCw,
-  Palette, Download
+  Palette, Download, PenTool, Columns
 } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import Logo from '../components/Logo'
@@ -125,6 +126,10 @@ const EditorRoom = () => {
   const [room,         setRoom]         = useState(null)
   const [files,        setFiles]        = useState([])
   const [activeFile,   setActiveFile]   = useState(null)
+  const activeFileRef = useRef(activeFile)
+  useEffect(() => {
+    activeFileRef.current = activeFile
+  }, [activeFile])
   const [language,     setLanguage]     = useState('javascript')
   const [showThemeDrop, setShowThemeDrop] = useState(false)
   const [bottomPanel,  setBottomPanel]  = useState('terminal')
@@ -134,6 +139,9 @@ const EditorRoom = () => {
 
   // Web dev preview state
   const [showPreview, setShowPreview] = useState(false)
+  
+  // View mode: 'editor' | 'whiteboard'
+  const [viewMode, setViewMode] = useState('editor')
   
   // Multi-tab editor state
   const [openTabs, setOpenTabs] = useState([])
@@ -163,7 +171,7 @@ const EditorRoom = () => {
     users, messages, isConnected,
     bindEditor, sendMessage, changeLanguage,
     lastEditedBy, setLastEditedBy, socketRef,
-    activeCallUsers
+    activeCallUsers, remoteCursors, updateCursor
   } = useCollaboration(roomId, user?.username, user?.avatar)
 
   const {
@@ -267,7 +275,7 @@ const EditorRoom = () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isDragging]);
+  }, [isDragging, fileTreeWidth, rightPanel, rightPanelWidth]);
 
   // ── Load room data ─────────────────────────────────────
   useEffect(() => {
@@ -382,6 +390,17 @@ const EditorRoom = () => {
     })
 
     bindEditor(editor, activeFile?.id, activeFile?.content)
+
+    // Broadcast cursor position changes
+    editor.onDidChangeCursorPosition((e) => {
+      if (activeFileRef.current) {
+        updateCursor({
+          fileId: activeFileRef.current.id,
+          lineNumber: e.position.lineNumber,
+          column: e.position.column
+        })
+      }
+    })
   }
 
   // ── Sync editor when active file changes ─────────────
@@ -389,6 +408,15 @@ const EditorRoom = () => {
     if (editorRef.current && activeFile) {
       bindEditor(editorRef.current, activeFile.id, activeFile.content)
       setLanguage(activeFile.language || 'javascript')
+      
+      // Send initial cursor position in new file
+      const pos = editorRef.current.getPosition()
+      updateCursor({
+        fileId: activeFile.id,
+        lineNumber: pos ? pos.lineNumber : 1,
+        column: pos ? pos.column : 1
+      })
+
       // Add to open tabs if not already there
       setOpenTabs(prev => {
         if (prev.find(t => t.id === activeFile.id)) return prev
@@ -396,6 +424,88 @@ const EditorRoom = () => {
       })
     }
   }, [activeFile?.id])
+
+  // ── Render remote cursors and hover name tags ──────────
+  const remoteDecorationsRef = useRef([])
+
+  useEffect(() => {
+    if (!editorRef.current || !monacoRef.current || !activeFile) return
+
+    const editor = editorRef.current
+    const monaco = monacoRef.current
+
+    // Filter cursors that are in the active file
+    const activeCursors = Object.entries(remoteCursors).filter(
+      ([_, data]) => data.cursor && data.cursor.fileId === activeFile.id
+    )
+
+    // Map cursors to Monaco decorations
+    const newDecorations = activeCursors.map(([socketId, data]) => {
+      const { username, color, cursor } = data
+      const { lineNumber, column } = cursor
+
+      const uniqueClass = `remote-cursor-${socketId}`
+      
+      // Inject CSS rule for this user's cursor dynamically if not already injected
+      let styleEl = document.getElementById(`style-${socketId}`)
+      if (!styleEl) {
+        styleEl = document.createElement("style")
+        styleEl.id = `style-${socketId}`
+        document.head.appendChild(styleEl)
+      }
+      styleEl.innerHTML = `
+        .${uniqueClass} {
+          background-color: ${color || 'var(--accent-purple)'} !important;
+          width: 2px !important;
+          position: absolute;
+        }
+        .${uniqueClass}::after {
+          content: '${username}';
+          position: absolute;
+          top: -16px;
+          left: 0;
+          background-color: ${color || 'var(--accent-purple)'};
+          color: #121218;
+          font-family: var(--font-body);
+          font-weight: 700;
+          font-size: 10px;
+          padding: 1px 4px;
+          border-radius: 3px;
+          white-space: nowrap;
+          pointer-events: none;
+          z-index: 10;
+          opacity: 0.85;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+      `
+
+      return {
+        range: new monaco.Range(lineNumber, column, lineNumber, column),
+        options: {
+          className: uniqueClass,
+          hoverMessage: { value: `${username} is here` },
+        },
+      }
+    })
+
+    // Apply decorations
+    remoteDecorationsRef.current = editor.deltaDecorations(
+      remoteDecorationsRef.current,
+      newDecorations
+    )
+
+    // Cleanup style elements when cursors disappear
+    return () => {
+      const activeSids = new Set(activeCursors.map(([sid]) => sid))
+      const styleElements = document.querySelectorAll("[id^='style-']")
+      styleElements.forEach(el => {
+        const sid = el.id.replace("style-", "")
+        if (!activeSids.has(sid)) {
+          el.remove()
+        }
+      })
+    }
+  }, [remoteCursors, activeFile?.id])
 
   // ── Auto-save on content change ────────────────────────
   const handleEditorChange = useCallback(() => {
@@ -625,6 +735,49 @@ const EditorRoom = () => {
     toast.success('Fix applied!')
   }
 
+  // ── Apply AI refactoring ─────────────────────────
+  const handleApplyRefactoring = async (fixedCode) => {
+    if (!editorRef.current) return;
+    editorRef.current.setValue(fixedCode);
+    ai.clearFix();
+    if (activeFile) {
+      try {
+        setSaving(true);
+        await saveFileContent(activeFile.id, fixedCode);
+        toast.success('AI Refactoring applied & saved!');
+      } catch (err) {
+        console.error('Failed to save refactored code:', err);
+        toast.error('Refactoring applied, but failed to save to server');
+      } finally {
+        setSaving(false);
+      }
+    }
+  };
+
+  // ── Highlight and scroll to line in Monaco ───────────────
+  const handleSelectLine = (lineNumber) => {
+    if (!editorRef.current) return;
+    editorRef.current.revealLineInCenter(lineNumber);
+    editorRef.current.setPosition({ lineNumber, column: 1 });
+    editorRef.current.focus();
+
+    const decorations = editorRef.current.deltaDecorations([], [
+      {
+        range: { startLineNumber: lineNumber, startColumn: 1, endLineNumber: lineNumber, endColumn: 1 },
+        options: {
+          isWholeLine: true,
+          className: 'line-highlight-pulse',
+        }
+      }
+    ]);
+
+    setTimeout(() => {
+      if (editorRef.current) {
+        editorRef.current.deltaDecorations(decorations, []);
+      }
+    }, 2500);
+  };
+
   // ── Keyboard shortcuts ─────────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -659,6 +812,7 @@ const EditorRoom = () => {
     contextmenu: false,
     scrollbar: { verticalScrollbarSize: 4, horizontalScrollbarSize: 4 },
     renderLineHighlight: 'line',
+    automaticLayout: true,
   }
 
   // Command palette state
@@ -925,6 +1079,49 @@ const EditorRoom = () => {
                 Preview
               </button>
             )}
+
+            {/* View Mode Segmented Controls */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: 30,
+              padding: '2px',
+              marginLeft: 4,
+            }}>
+              {[
+                { id: 'editor', label: 'Code', icon: Code2 },
+                { id: 'whiteboard', label: 'Darkboard', icon: PenTool },
+              ].map((m) => {
+                const Icon = m.icon;
+                const active = viewMode === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => setViewMode(m.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '5px 12px',
+                      fontSize: '11px',
+                      fontWeight: active ? 600 : 500,
+                      color: active ? '#00f0ff' : 'var(--text-muted)',
+                      background: active ? 'rgba(0, 240, 255, 0.08)' : 'transparent',
+                      border: 'none',
+                      borderRadius: 30,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    title={`Switch to ${m.label} view`}
+                  >
+                    <Icon size={12} color={active ? '#00f0ff' : 'var(--text-muted)'} />
+                    <span>{m.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -1179,38 +1376,71 @@ const EditorRoom = () => {
 
         {/* Editor + Terminal column */}
         <div style={styles.editorCol}>
-          {/* Tab bar */}
-          {openTabs.length > 0 && (
-            <div className="editor-tabs-bar">
-              {openTabs.map(tab => (
-                <div
-                  key={tab.id}
-                  className={`editor-tab ${activeFile?.id === tab.id ? 'active' : ''}`}
-                  onClick={() => handleSelectFile(tab)}
-                >
-                  <FileCode2 size={12} style={{ opacity: 0.6 }} />
-                  {tab.name.split('/').pop()}
-                  <button
-                    className="editor-tab-close"
-                    onClick={(e) => { e.stopPropagation(); handleCloseTab(tab.id); }}
-                  >
-                    <X size={10} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Workspace Area */}
+          <div style={{ display: 'flex', flex: 1, height: '100%', minHeight: 0, width: '100%', overflow: 'hidden', position: 'relative' }}>
+            {/* Code Editor - shown in 'editor' mode */}
+            {viewMode === 'editor' && (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                width: '100%',
+                height: '100%',
+                minWidth: 0,
+                overflow: 'hidden',
+                position: 'relative'
+              }}>
+                {/* Tab bar */}
+                {openTabs.length > 0 && (
+                  <div className="editor-tabs-bar">
+                    {openTabs.map(tab => (
+                      <div
+                        key={tab.id}
+                        className={`editor-tab ${activeFile?.id === tab.id ? 'active' : ''}`}
+                        onClick={() => handleSelectFile(tab)}
+                      >
+                        <FileCode2 size={12} style={{ opacity: 0.6 }} />
+                        {tab.name.split('/').pop()}
+                        <button
+                          className="editor-tab-close"
+                          onClick={(e) => { e.stopPropagation(); handleCloseTab(tab.id); }}
+                        >
+                          <X size={10} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-          {/* Monaco Editor */}
-          <div style={styles.editorWrap}>
-            <Editor
-              height="100%"
-              language={language === "cpp" ? "cpp" : language}
-              theme={theme === "light" ? "light" : editorTheme}
-              onMount={handleEditorMount}
-              onChange={handleEditorChange}
-              options={editorOptions}
-            />
+                {/* Monaco Editor */}
+                <div style={styles.editorWrap}>
+                  <Editor
+                    height="100%"
+                    language={language === "cpp" ? "cpp" : language}
+                    theme={theme === "light" ? "light" : editorTheme}
+                    onMount={handleEditorMount}
+                    onChange={handleEditorChange}
+                    options={editorOptions}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Darkboard - shown in 'whiteboard' mode */}
+            {viewMode === 'whiteboard' && (
+              <div style={{
+                width: '100%',
+                height: '100%',
+                minWidth: 0,
+                overflow: 'hidden'
+              }}>
+                <Whiteboard
+                  socketRef={socketRef}
+                  roomId={roomId}
+                  roomData={room}
+                  theme={editorTheme}
+                />
+              </div>
+            )}
           </div>
 
           {/* Horizontal Resizer */}
@@ -1278,6 +1508,15 @@ const EditorRoom = () => {
                 code={getCode()}
                 language={language}
                 lastEditedBy={lastEditedBy}
+                reviewLoading={ai.reviewLoading}
+                reviewIssues={ai.reviewIssues}
+                onReviewCode={() => ai.reviewCode(getCode(), language)}
+                fixLoading={ai.fixLoading}
+                fixResult={ai.fixResult}
+                onAutoFix={(error) => ai.autoFix(getCode(), error, language)}
+                onClearFix={ai.clearFix}
+                onSelectLine={handleSelectLine}
+                onApplyRefactoring={handleApplyRefactoring}
               />
             </motion.div>
           )}

@@ -4,7 +4,7 @@ const dotenv = require("dotenv");
 const http = require("http");
 const passport = require("passport");
 
-dotenv.config();
+dotenv.config({ override: true });
 
 // Initialize passport
 require("./config/passport");

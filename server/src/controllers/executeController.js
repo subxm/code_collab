@@ -1,11 +1,11 @@
 const axios = require("axios");
 
-const JUDGE0_URL = "https://judge029.p.rapidapi.com";
+const JUDGE0_URL = "https://judge0-ce.p.rapidapi.com";
 
 const RAPIDAPI_HEADERS = {
   "Content-Type": "application/json",
   "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
-  "X-RapidAPI-Host": "judge029.p.rapidapi.com",
+  "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
 };
 
 const LANGUAGE_MAP = {

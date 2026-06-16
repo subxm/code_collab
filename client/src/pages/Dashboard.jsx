@@ -385,22 +385,32 @@ const Dashboard = () => {
   const navigate = useNavigate()
   const { user, token, logout } = useAuth()
 
-  // Rooms State
+  // Rooms & Activities State
   const [rooms, setRooms]                 = useState([])
+  const [activities, setActivities]       = useState([])
   const [loading, setLoading]             = useState(true)
   const [showCreate, setShowCreate]       = useState(false)
   const [showJoin, setShowJoin]           = useState(false)
   const [renameRoomObj, setRenameRoomObj] = useState(null)
   const [deleteRoomObj, setDeleteRoomObj] = useState(null)
 
-  // Fetch Rooms
+  // Fetch Rooms & Activities
   const fetchData = async () => {
     try {
       setLoading(true)
-      const roomsRes = await axios.get(`${API_URL}/api/rooms/my-rooms`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const [roomsRes, actRes] = await Promise.all([
+        axios.get(`${API_URL}/api/rooms/my-rooms`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${API_URL}/api/rooms/recent-activity`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(err => {
+          console.error("Failed to load activity:", err)
+          return { data: { activities: [] } }
+        })
+      ])
       setRooms(roomsRes.data.rooms)
+      setActivities(actRes.data.activities || [])
     } catch (err) {
       console.error(err)
       toast.error('Failed to load dashboard data')
@@ -513,100 +523,190 @@ const Dashboard = () => {
           </div>
         </motion.div>
 
-        {/* Rooms Grid */}
-        <div style={{ marginTop: 24 }}>
-          <div style={styles.sectionHeader}>
-            <h2 style={styles.sectionTitle}>My Collaborative Rooms</h2>
+        {/* Main Content Grid */}
+        <div className="dashboard-grid" style={{ marginTop: 24 }}>
+          {/* Left Column: Rooms */}
+          <div style={styles.leftCol}>
+            <div style={styles.sectionHeader}>
+              <h2 style={styles.sectionTitle}>My Collaborative Rooms</h2>
+            </div>
+
+            {rooms.length === 0 ? (
+              <div style={styles.emptyFeed}>
+                <Code2 size={24} color="var(--text-secondary)" style={{ marginBottom: 8 }} />
+                <p style={styles.emptyFeedText}>You don't have any rooms yet. Create a new room above to start collaborating!</p>
+              </div>
+            ) : (
+              <div style={styles.roomsGrid}>
+                {rooms.map((room, i) => {
+                  const color = LANG_COLORS[room.language] || 'var(--accent-purple)'
+                  return (
+                    <motion.div
+                      key={room.id}
+                      style={styles.roomCard}
+                      whileHover={{ y: -4, borderColor: 'var(--border-bright)', boxShadow: '0 8px 30px rgba(0,0,0,0.4)' }}
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                    >
+                      <div style={styles.roomCardHeader}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{ ...styles.langDot, background: color }} />
+                          <h4 style={styles.roomCardName}>{room.name}</h4>
+                        </div>
+                        <span style={{ 
+                          fontSize: '10px', 
+                          fontWeight: 700, 
+                          textTransform: 'uppercase', 
+                          padding: '3px 8px', 
+                          borderRadius: '12px',
+                          background: room.myRole === 'owner' ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.05)',
+                          color: room.myRole === 'owner' ? 'var(--accent-purple)' : 'var(--text-secondary)',
+                          border: room.myRole === 'owner' ? '1px solid rgba(139,92,246,0.25)' : '1px solid rgba(255,255,255,0.08)'
+                        }}>
+                          {room.myRole === 'owner' ? 'Owner' : 'Editor'}
+                        </span>
+                      </div>
+                      
+                      <div style={styles.roomCardMeta}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                          {room.language.toUpperCase()}
+                        </span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                          Updated {timeAgo(room.updatedAt)}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                        <div>
+                          {room.myRole === 'owner' && (
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRenameRoomObj(room);
+                                }}
+                                style={styles.cardActionBtn}
+                                className="card-action-btn"
+                                title="Rename Room"
+                              >
+                                <Edit3 size={13} />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteRoomObj(room);
+                                }}
+                                style={styles.cardActionBtnDelete}
+                                className="card-action-btn-delete"
+                                title="Delete Room"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => navigate(`/room/${room.id}`)}
+                          style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px', fontWeight: 600 }}
+                        >
+                          Enter Room
+                        </button>
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
-          {rooms.length === 0 ? (
-            <div style={styles.emptyFeed}>
-              <Code2 size={24} color="var(--text-secondary)" style={{ marginBottom: 8 }} />
-              <p style={styles.emptyFeedText}>You don't have any rooms yet. Create a new room above to start collaborating!</p>
+          {/* Right Column: Recent Activity Timeline */}
+          <div style={styles.rightCol}>
+            <div style={styles.sectionHeader}>
+              <h2 style={styles.sectionTitle}>Recent Activity</h2>
             </div>
-          ) : (
-            <div style={styles.roomsGrid}>
-              {rooms.map((room, i) => {
-                const color = LANG_COLORS[room.language] || 'var(--accent-purple)'
-                return (
-                  <motion.div
-                    key={room.id}
-                    style={styles.roomCard}
-                    whileHover={{ y: -4, borderColor: 'var(--border-bright)', boxShadow: '0 8px 30px rgba(0,0,0,0.4)' }}
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                  >
-                    <div style={styles.roomCardHeader}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ ...styles.langDot, background: color }} />
-                        <h4 style={styles.roomCardName}>{room.name}</h4>
-                      </div>
-                      <span style={{ 
-                        fontSize: '10px', 
-                        fontWeight: 700, 
-                        textTransform: 'uppercase', 
-                        padding: '3px 8px', 
-                        borderRadius: '12px',
-                        background: room.myRole === 'owner' ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.05)',
-                        color: room.myRole === 'owner' ? 'var(--accent-purple)' : 'var(--text-secondary)',
-                        border: room.myRole === 'owner' ? '1px solid rgba(139,92,246,0.25)' : '1px solid rgba(255,255,255,0.08)'
-                      }}>
-                        {room.myRole === 'owner' ? 'Owner' : 'Editor'}
-                      </span>
-                    </div>
-                    
-                    <div style={styles.roomCardMeta}>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-secondary)' }}>
-                        {room.language.toUpperCase()}
-                      </span>
-                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                        Updated {timeAgo(room.updatedAt)}
-                      </span>
-                    </div>
+            
+            <div style={styles.activityCard}>
+              {activities.length === 0 ? (
+                <div style={styles.emptyActivity}>
+                  <Clock size={16} color="var(--text-muted)" style={{ marginBottom: 6 }} />
+                  <p style={styles.emptyActivityText}>No recent activity yet</p>
+                </div>
+              ) : (
+                <div style={styles.timeline}>
+                  {activities.map((act, i) => {
+                    let ActIcon = Clock
+                    let actColor = 'var(--text-secondary)'
+                    if (act.type === 'file_update') {
+                      ActIcon = Edit3
+                      actColor = 'var(--accent-cyan)'
+                    } else if (act.type === 'snapshot_save') {
+                      ActIcon = Clock
+                      actColor = 'var(--accent-purple)'
+                    } else if (act.type === 'room_create') {
+                      ActIcon = Plus
+                      actColor = '#50fa7b'
+                    }
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
-                      <div>
-                        {room.myRole === 'owner' && (
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setRenameRoomObj(room);
-                              }}
-                              style={styles.cardActionBtn}
-                              className="card-action-btn"
-                              title="Rename Room"
-                            >
-                              <Edit3 size={13} />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteRoomObj(room);
-                              }}
-                              style={styles.cardActionBtnDelete}
-                              className="card-action-btn-delete"
-                              title="Delete Room"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => navigate(`/room/${room.id}`)}
-                        style={{ padding: '8px 18px', fontSize: '13px', borderRadius: '8px', fontWeight: 600 }}
+                    return (
+                      <motion.div
+                        key={act.id}
+                        style={styles.timelineItem}
+                        initial={{ opacity: 0, x: 15 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
                       >
-                        Enter Room
-                      </button>
-                    </div>
-                  </motion.div>
-                )
-              })}
+                        {i < activities.length - 1 && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              left: -13,
+                              top: 24,
+                              width: 2,
+                              bottom: -20,
+                              backgroundColor: 'var(--border)',
+                              zIndex: 1,
+                            }}
+                          />
+                        )}
+                        <div
+                          style={{
+                            position: 'absolute',
+                            left: -24,
+                            top: 2,
+                            width: 24,
+                            height: 24,
+                            borderRadius: '50%',
+                            backgroundColor: 'var(--bg-primary)',
+                            border: `2px solid ${actColor}`,
+                            color: actColor,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 2,
+                          }}
+                        >
+                          <ActIcon size={12} />
+                        </div>
+                        <div style={{ paddingLeft: 12 }}>
+                          <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                            {act.title}
+                          </h4>
+                          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 4px' }}>
+                            {act.detail}
+                          </p>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            {timeAgo(act.timestamp)}
+                          </span>
+                        </div>
+                      </motion.div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
       </main>
@@ -987,21 +1087,31 @@ const styles = {
   },
   emptyFeedText: { fontSize: '12px', color: 'var(--text-secondary)', maxWidth: 260 },
 
+  activityCard: {
+    background: 'var(--bg-card)',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-lg)',
+    padding: '24px',
+    boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
+  },
+  emptyActivity: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    padding: '32px 16px',
+    textAlign: 'center',
+    gap: 8,
+  },
+  emptyActivityText: {
+    fontSize: '12px',
+    color: 'var(--text-muted)',
+  },
   timeline: {
     display: 'flex', flexDirection: 'column', position: 'relative',
-    paddingLeft: 16, borderLeft: '2px solid var(--border)',
-    margin: '10px 0 0 4px', gap: 20,
+    paddingLeft: 16,
+    margin: '10px 0 0 12px', gap: 24,
   },
-  timelineItem: { position: 'relative' },
-  timelineDot: {
-    position: 'absolute', left: -22, top: 4, width: 10, height: 10,
-    borderRadius: '50%', background: 'var(--accent-purple)',
-    border: '2px solid var(--bg-primary)',
-  },
-  timelineHeader: { display: 'flex', justifyContents: 'space-between', alignItems: 'center', marginBottom: 2 },
-  timelineTitle: { fontSize: '13px', fontWeight: 700 },
-  timelineTime: { fontSize: '11px', color: 'var(--text-secondary)' },
-  timelineDetail: { fontSize: '12px', color: 'var(--text-secondary)' },
+  timelineItem: { position: 'relative', minHeight: 48 },
 
   // Lobby Card styles
   lobbyCard: {

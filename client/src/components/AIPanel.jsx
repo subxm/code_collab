@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Brain, MessageSquare, Send, Loader2, Users, Copy, Check } from "lucide-react";
+import { Brain, MessageSquare, Send, Loader2, Users, Copy, Check, Sparkles, AlertTriangle, AlertOctagon, Info } from "lucide-react";
 import { renderAvatar } from "../pages/ProfilePage";
 
 const TABS = [
   { id: "chat", label: "Chat", icon: MessageSquare },
   { id: "ai", label: "Ask AI", icon: Brain },
+  { id: "review", label: "AI Review", icon: Sparkles },
 ];
 
 // ── Custom Code Block with Copy Button ───────────────────
@@ -334,6 +335,15 @@ const AIPanel = ({
   code,
   language,
   lastEditedBy,
+  reviewLoading,
+  reviewIssues,
+  onReviewCode,
+  fixLoading,
+  fixResult,
+  onAutoFix,
+  onClearFix,
+  onSelectLine,
+  onApplyRefactoring,
 }) => {
   const [activeTab, setActiveTab] = useState("chat");
   const [roomInput, setRoomInput] = useState("");
@@ -413,8 +423,8 @@ const AIPanel = ({
           <div
             className="tabs-segment-slider"
             style={{
-              width: "calc(50% - 4px)",
-              left: activeTab === "chat" ? "4px" : "calc(50%)",
+              width: "calc(100% / 3 - 4px)",
+              left: activeTab === "chat" ? "4px" : activeTab === "ai" ? "calc(100% / 3)" : "calc(200% / 3)",
             }}
           />
           {TABS.map((tab) => (
@@ -609,6 +619,161 @@ const AIPanel = ({
                 <Send size={14} />
               )}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── CODE REVIEW TAB ───────────────────────── */}
+      {activeTab === "review" && (
+        <div style={styles.tabWrap}>
+          {/* Scrollable list area */}
+          <div style={styles.messages}>
+            {reviewLoading ? (
+              <div style={styles.emptyState}>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                  style={{ marginBottom: 12, display: "flex", justifyContent: "center" }}
+                >
+                  <Sparkles size={28} color="var(--accent-cyan)" />
+                </motion.div>
+                <p style={styles.emptyText}>AI is reviewing your code file...</p>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Checking performance, bugs, and styling</span>
+              </div>
+            ) : (!reviewIssues || reviewIssues.length === 0) ? (
+              <div style={styles.emptyState}>
+                <Sparkles size={28} color="var(--text-muted)" style={{ marginBottom: 8 }} />
+                <p style={styles.emptyText}>No code review performed yet.</p>
+                <p style={{ ...styles.emptyText, fontSize: '11px', marginTop: 4 }}>Run a code review to find quality improvements, optimizations, and security tips.</p>
+                <button
+                  className="btn btn-primary"
+                  onClick={onReviewCode}
+                  style={{ marginTop: 16, gap: 8, padding: '8px 18px', fontSize: '12px' }}
+                >
+                  <Sparkles size={13} /> Run AI Review
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    Found {reviewIssues.length} issues
+                  </span>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={onReviewCode}
+                    style={{ padding: '4px 10px', fontSize: '11px', gap: 4 }}
+                  >
+                    <Sparkles size={11} /> Re-Run
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {reviewIssues.map((issue, idx) => {
+                    const Icon = issue.severity === "error" ? AlertOctagon : issue.severity === "warning" ? AlertTriangle : Info;
+                    const severityColor = issue.severity === "error" ? "#ff6b6b" : issue.severity === "warning" ? "#ffb347" : "#4fc3f7";
+                    return (
+                      <div
+                        key={idx}
+                        style={{
+                          background: 'rgba(255,255,255,0.02)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px',
+                          padding: '10px 12px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 6
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Icon size={12} color={severityColor} />
+                            <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: severityColor }}>
+                              {issue.severity}
+                            </span>
+                          </div>
+                          {issue.line && (
+                            <button
+                              onClick={() => onSelectLine && onSelectLine(issue.line)}
+                              style={{
+                                background: 'rgba(255,255,255,0.04)',
+                                border: '1px solid var(--border)',
+                                borderRadius: '4px',
+                                padding: '2px 6px',
+                                fontSize: '10px',
+                                color: 'var(--accent-cyan)',
+                                fontFamily: 'var(--font-mono)',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Line {issue.line}
+                            </button>
+                          )}
+                        </div>
+                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                          {issue.message}
+                        </p>
+                        {issue.fix && (
+                          <div style={{ background: 'rgba(0,0,0,0.15)', padding: '6px 8px', borderRadius: '4px', fontSize: '11px', color: 'var(--text-secondary)', borderLeft: `2px solid ${severityColor}` }}>
+                            <strong style={{ color: 'var(--text-primary)', fontSize: '10px', display: 'block', marginBottom: 2 }}>SUGGESTED FIX:</strong>
+                            {issue.fix}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Collapsible / Floating Refactoring Section */}
+                <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+                  <h4 style={{ margin: '0 0 8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>AI Full-File Refactoring</h4>
+                  <p style={{ margin: '0 0 12px', fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                    Generate an optimized, clean version of this entire file that resolves style guides, performance bottlenecks, and compiler warnings.
+                  </p>
+                  
+                  {fixLoading ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '12px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                      <Loader2 size={14} style={{ animation: "spin 0.7s linear infinite" }} />
+                      Generating refactored version...
+                    </div>
+                  ) : fixResult ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ background: 'rgba(57,211,83,0.08)', border: '1px solid rgba(57,211,83,0.2)', padding: '10px 12px', borderRadius: '6px', fontSize: '12px' }}>
+                        <strong style={{ color: '#39d353', display: 'block', marginBottom: 2 }}>EXPLANATION:</strong>
+                        {fixResult.explanation}
+                      </div>
+                      
+                      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                        <button
+                          className="btn btn-secondary"
+                          onClick={onClearFix}
+                          style={{ flex: 1, padding: '8px 12px', fontSize: '12px' }}
+                        >
+                          Discard
+                        </button>
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => {
+                            onApplyRefactoring && onApplyRefactoring(fixResult.fixedCode);
+                          }}
+                          style={{ flex: 2, padding: '8px 12px', fontSize: '12px', gap: 6 }}
+                        >
+                          <Check size={13} /> Apply
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => onAutoFix && onAutoFix("Code Review Refactor Request")}
+                      style={{ width: '100%', padding: '8px 14px', fontSize: '12px', gap: 8 }}
+                    >
+                      <Sparkles size={13} /> Refactor Code with AI
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

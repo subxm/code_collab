@@ -1451,4 +1451,20 @@ a:hover {
 
 .top-right-tool-btn:active {
   transform: scale(0.98);
+}
+
+/* ── Monaco Line Highlight for AI Review ───────────── */
+.line-highlight-pulse {
+  background: rgba(139, 92, 246, 0.18) !important;
+  border-left: 3px solid #8b5cf6 !important;
+  animation: pulse-line 0.8s infinite alternate;
+}
+
+@keyframes pulse-line {
+  0% {
+    background: rgba(139, 92, 246, 0.12) !important;
+  }
+  100% {
+    background: rgba(139, 92, 246, 0.3) !important;
+  }
 }

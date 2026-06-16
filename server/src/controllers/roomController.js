@@ -178,14 +178,14 @@ const saveSnapshot = async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    // Save snapshot + update room's current code
+    // Save snapshot + update room's updatedAt
     const [snapshot] = await prisma.$transaction([
       prisma.snapshot.create({
         data: { roomId, code },
       }),
       prisma.room.update({
         where: { id: roomId },
-        data: { code, updatedAt: new Date() },
+        data: { updatedAt: new Date() },
       }),
     ]);
 
